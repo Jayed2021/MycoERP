@@ -12,7 +12,8 @@ import { Modal } from '../components/Modal';
 import { PageLoader } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
 import { QrCodeDisplay } from '../components/QrCodeDisplay';
-import { formatDateTime, formatDate, getBatchTypeLabel, canManage, generateQrText, formatRelativeTime } from '../lib/utils';
+import { formatDateTime, formatDate, getBatchTypeLabel, generateQrText, formatRelativeTime } from '../lib/utils';
+import { usePermissions } from '../contexts/PermissionsContext';
 import type { Batch, Task, BatchEvent, BatchNote, ContaminationReport, Harvest, QrCode as QrCodeType } from '../lib/types';
 
 const TABS = [
@@ -39,6 +40,7 @@ interface Props { batchId: string; }
 
 export default function BatchDetail({ batchId }: Props) {
   const { user } = useAuth();
+  const { canEdit } = usePermissions();
   const [batch, setBatch] = useState<Batch | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<BatchEvent[]>([]);
@@ -144,7 +146,7 @@ export default function BatchDetail({ batchId }: Props) {
             {getBatchTypeLabel(batch.batch_type)} · {(batch as any).species?.name ?? 'No species'} · Started {formatDate(batch.start_date)}
           </p>
         </div>
-        {canManage(user?.role ?? '') && (
+        {canEdit('batches') && (
           <button onClick={() => setShowEditStatus(true)} className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
             <Edit2 size={14} /> Update Status
           </button>
@@ -389,7 +391,7 @@ export default function BatchDetail({ batchId }: Props) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">QR Codes for this Batch</h2>
-            {canManage(user?.role ?? '') && (
+            {canEdit('batches') && (
               <button
                 onClick={generateBatchQr}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"

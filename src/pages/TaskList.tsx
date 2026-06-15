@@ -6,11 +6,12 @@ import {
 import { supabase } from '../lib/supabase';
 import { navigate } from '../hooks/useRoute';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageLoader } from '../components/LoadingSpinner';
 import { Modal } from '../components/Modal';
-import { formatDateTime, isOverdue, getOverdueDuration, canManage } from '../lib/utils';
+import { formatDateTime, isOverdue, getOverdueDuration } from '../lib/utils';
 import type { Task, Profile, Batch } from '../lib/types';
 
 const STATUS_FILTERS = [
@@ -30,6 +31,7 @@ interface Props {
 
 export default function TaskList({ filter = '', priority = '', batchId = '' }: Props) {
   const { user } = useAuth();
+  const { canCreate } = usePermissions();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState(filter || 'today');
@@ -87,7 +89,7 @@ export default function TaskList({ filter = '', priority = '', batchId = '' }: P
           <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
           <p className="text-sm text-gray-500">{tasks.length} task{tasks.length !== 1 ? 's' : ''}</p>
         </div>
-        {canManage(user?.role ?? '') && (
+        {canCreate('tasks') && (
           <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
             <Plus size={16} /> New Task
           </button>

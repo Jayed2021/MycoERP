@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Users, UserCheck, UserX } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageLoader } from '../components/LoadingSpinner';
-import { formatDate, getRoleLabel, isAdmin } from '../lib/utils';
+import { formatDate, getRoleLabel } from '../lib/utils';
 import type { Profile } from '../lib/types';
 
 const ROLES = [
@@ -21,6 +22,7 @@ const DEPARTMENTS = ['Lab', 'Spawn', 'Substrate', 'Incubation', 'Fruiting', 'Har
 
 export default function UserManagement() {
   const { user } = useAuth();
+  const { canView } = usePermissions();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState<Profile | null>(null);
@@ -39,7 +41,7 @@ export default function UserManagement() {
     fetchUsers();
   }
 
-  if (!isAdmin(user?.role ?? '')) {
+  if (!canView('users')) {
     return (
       <div className="p-6">
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">

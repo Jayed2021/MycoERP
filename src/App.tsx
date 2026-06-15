@@ -1,5 +1,6 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { PermissionsProvider } from './contexts/PermissionsContext';
 import { useRoute } from './hooks/useRoute';
 import { Layout } from './components/Layout';
 import { PageLoader } from './components/LoadingSpinner';
@@ -17,6 +18,7 @@ import Harvests from './pages/Harvests';
 import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
 import UserManagement from './pages/Users';
+import Permissions from './pages/Permissions';
 import EnvironmentalLogs from './pages/EnvironmentalLogs';
 import QrManager from './pages/QrManager';
 import QrPrint from './pages/QrPrint';
@@ -88,6 +90,8 @@ function AppRoutes() {
         return <Reports />;
       case '/users':
         return <UserManagement />;
+      case '/permissions':
+        return <Permissions />;
       case '/env-logs':
         return <EnvironmentalLogs />;
       case '/scan':
@@ -117,7 +121,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <PermissionsProvider>
+        <AppRoutes />
+      </PermissionsProvider>
     </AuthProvider>
   );
 }

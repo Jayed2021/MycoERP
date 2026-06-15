@@ -8,11 +8,13 @@ import { navigate } from '../hooks/useRoute';
 import { useAuth } from '../contexts/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { PageLoader } from '../components/LoadingSpinner';
-import { formatDateTime, isOverdue, getOverdueDuration, canManage } from '../lib/utils';
+import { formatDateTime, isOverdue, getOverdueDuration } from '../lib/utils';
+import { usePermissions } from '../contexts/PermissionsContext';
 import type { Task, TaskQrVerification } from '../lib/types';
 
 export default function TaskDetail({ taskId }: { taskId: string }) {
   const { user } = useAuth();
+  const { canEdit, canApprove: canApproveTask } = usePermissions();
   const [task, setTask] = useState<Task | null>(null);
   const [verifications, setVerifications] = useState<TaskQrVerification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,9 +152,9 @@ export default function TaskDetail({ taskId }: { taskId: string }) {
 
   const overdue = isOverdue(task.due_at, task.status);
   const isAssignee = user?.id === task.assigned_to;
-  const isManager = canManage(user?.role ?? '');
+  const isManager = canEdit('tasks');
   const canComplete = (isAssignee || isManager) && ['Pending', 'In Progress', 'Rejected'].includes(task.status);
-  const canApprove = isManager && task.status === 'Submitted for Approval';
+  const canApproveThis = canApproveTask('tasks') && task.status === 'Submitted for Approval';
 
   // QR requirements — from extended task fields
   const taskAny = task as any;
@@ -350,7 +352,7 @@ export default function TaskDetail({ taskId }: { taskId: string }) {
         )}
 
         {/* Approval form */}
-        {canApprove && (
+        {canApproveThis && (
           <div className="border-t border-gray-100 pt-5 space-y-3">
             <h3 className="text-sm font-semibold text-gray-900">Review Submission</h3>
             <p className="text-sm text-gray-600">Submitted by {(task as any).completer?.full_name} at {formatDateTime(task.submitted_at)}</p>

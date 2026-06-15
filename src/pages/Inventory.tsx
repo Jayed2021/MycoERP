@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { Plus, PackageOpen, TrendingDown, Edit2, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageLoader } from '../components/LoadingSpinner';
-import { formatDate, canManage } from '../lib/utils';
+import { formatDate } from '../lib/utils';
 import type { InventoryItem, InventoryMovement } from '../lib/types';
 
 const CATEGORIES = ['Grain', 'Substrate', 'Supplement', 'Packaging', 'Lab Supply', 'Cleaning Supply', 'Equipment Part', 'Other'];
@@ -15,6 +16,7 @@ const CATEGORIES = ['Grain', 'Substrate', 'Supplement', 'Packaging', 'Lab Supply
 export default function Inventory() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { canEdit } = usePermissions();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showItemModal, setShowItemModal] = useState(false);
@@ -56,7 +58,7 @@ export default function Inventory() {
             {lowStockCount > 0 && <span className="ml-2 text-red-500 font-medium">· {lowStockCount} low stock</span>}
           </p>
         </div>
-        {canManage(user?.role ?? '') && (
+        {canEdit('inventory') && (
           <button onClick={() => { setEditItem(null); setShowItemModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
             <Plus size={16} /> {t('inventory.newItem')}
@@ -117,7 +119,7 @@ export default function Inventory() {
                               <button onClick={() => setShowMovementModal(item)} className="px-2 py-1 text-xs text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded font-medium">
                                 Adjust
                               </button>
-                              {canManage(user?.role ?? '') && (
+                              {canEdit('inventory') && (
                                 <button onClick={() => { setEditItem(item); setShowItemModal(true); }} className="p-1.5 rounded hover:bg-gray-100">
                                   <Edit2 size={12} className="text-gray-400" />
                                 </button>

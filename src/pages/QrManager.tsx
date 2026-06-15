@@ -2,12 +2,13 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { QrCode, Plus, Search, RotateCcw, Archive, AlertTriangle, ChevronRight, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { Modal } from '../components/Modal';
 import { QrCodeDisplay } from '../components/QrCodeDisplay';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageLoader } from '../components/LoadingSpinner';
-import { formatDateTime, canManage } from '../lib/utils';
+import { formatDateTime } from '../lib/utils';
 import { getQrStatusColor, getQrEntityTypeLabel, generateQrText } from '../lib/utils';
 import type { QrCode as QrCodeType, Batch, Room, Rack } from '../lib/types';
 
@@ -16,6 +17,7 @@ const STATUSES = ['Active', 'Inactive', 'Lost', 'Replaced', 'Archived'];
 
 export default function QrManager() {
   const { user } = useAuth();
+  const { canEdit } = usePermissions();
   const [qrCodes, setQrCodes] = useState<QrCodeType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -68,7 +70,7 @@ export default function QrManager() {
           <h1 className="text-2xl font-bold text-gray-900">QR Codes</h1>
           <p className="text-sm text-gray-500">{qrCodes.length} code{qrCodes.length !== 1 ? 's' : ''}</p>
         </div>
-        {canManage(user?.role ?? '') && (
+        {canEdit('qr_codes') && (
           <button
             onClick={() => setShowGenerate(true)}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg"
@@ -135,7 +137,7 @@ export default function QrManager() {
                         <button onClick={() => setSelectedQr(qr)} className="px-2 py-1 text-xs text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded font-medium">
                           View
                         </button>
-                        {canManage(user?.role ?? '') && qr.status === 'Active' && (
+                        {canEdit('qr_codes') && qr.status === 'Active' && (
                           <>
                             <button onClick={() => replaceQr(qr)} className="px-2 py-1 text-xs text-amber-600 bg-amber-50 hover:bg-amber-100 rounded font-medium" title="Replace (issue new code)">
                               Replace
@@ -145,12 +147,12 @@ export default function QrManager() {
                             </button>
                           </>
                         )}
-                        {canManage(user?.role ?? '') && qr.status === 'Lost' && (
+                        {canEdit('qr_codes') && qr.status === 'Lost' && (
                           <button onClick={() => replaceQr(qr)} className="px-2 py-1 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 rounded font-medium">
                             Re-issue
                           </button>
                         )}
-                        {canManage(user?.role ?? '') && !['Archived'].includes(qr.status) && (
+                        {canEdit('qr_codes') && !['Archived'].includes(qr.status) && (
                           <button onClick={() => updateStatus(qr.id, 'Lost')} className="p-1 rounded hover:bg-red-50" title="Mark as lost">
                             <AlertTriangle size={12} className="text-red-400" />
                           </button>
@@ -180,7 +182,7 @@ export default function QrManager() {
               <div><p className="text-xs text-gray-500">Last Scanned</p><p>{selectedQr.last_scanned_at ? formatDateTime(selectedQr.last_scanned_at) : 'Never'}</p></div>
               <div><p className="text-xs text-gray-500">Printed</p><p>{selectedQr.printed_at ? formatDateTime(selectedQr.printed_at) : 'Not yet'}</p></div>
             </div>
-            {canManage(user?.role ?? '') && selectedQr.status === 'Active' && (
+            {canEdit('qr_codes') && selectedQr.status === 'Active' && (
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button onClick={() => { replaceQr(selectedQr); setSelectedQr(null); }} className="flex-1 py-2 text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg font-medium">
                   <RotateCcw size={13} className="inline mr-1" /> Replace

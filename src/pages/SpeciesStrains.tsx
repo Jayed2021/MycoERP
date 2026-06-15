@@ -2,15 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Leaf, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageLoader } from '../components/LoadingSpinner';
-import { formatDate, canManage } from '../lib/utils';
+import { formatDate } from '../lib/utils';
 import type { Species, Strain } from '../lib/types';
 
 export default function SpeciesStrains() {
   const { user } = useAuth();
+  const { canEdit } = usePermissions();
   const [species, setSpecies] = useState<Species[]>([]);
   const [strains, setStrains] = useState<Record<string, Strain[]>>({});
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ export default function SpeciesStrains() {
           <h1 className="text-2xl font-bold text-gray-900">Species & Strains</h1>
           <p className="text-sm text-gray-500">{species.length} species</p>
         </div>
-        {canManage(user?.role ?? '') && (
+        {canEdit('species_strains') && (
           <button onClick={() => { setEditSpecies(null); setShowSpeciesModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
             <Plus size={16} /> New Species
@@ -82,7 +84,7 @@ export default function SpeciesStrains() {
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-400">{strains[sp.id]?.length ?? 0} strain{(strains[sp.id]?.length ?? 0) !== 1 ? 's' : ''}</span>
                   <div className="flex gap-1">
-                    {canManage(user?.role ?? '') && (
+                    {canEdit('species_strains') && (
                       <>
                         <button onClick={e => { e.stopPropagation(); setShowStrainModal(sp.id); setEditStrain(null); }}
                           className="p-1.5 rounded-lg text-xs text-emerald-600 hover:bg-emerald-50 font-medium">+ Strain</button>
@@ -124,7 +126,7 @@ export default function SpeciesStrains() {
                               {strain.expected_fruiting_days && <span>Fruit: {strain.expected_fruiting_days}d</span>}
                             </div>
                           </div>
-                          {canManage(user?.role ?? '') && (
+                          {canEdit('species_strains') && (
                             <button onClick={() => { setEditStrain(strain); setShowStrainModal(sp.id); }}
                               className="p-1.5 rounded-lg hover:bg-gray-100">
                               <Edit2 size={13} className="text-gray-400" />

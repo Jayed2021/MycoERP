@@ -3,11 +3,12 @@ import { Plus, AlertTriangle, ChevronRight, Filter } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { navigate } from '../hooks/useRoute';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageLoader } from '../components/LoadingSpinner';
-import { formatDateTime, formatDate, canManage } from '../lib/utils';
+import { formatDateTime, formatDate } from '../lib/utils';
 import type { ContaminationReport, Batch } from '../lib/types';
 
 const SUSPECTED_CAUSES = [
@@ -23,6 +24,7 @@ interface Props { batchId?: string; }
 
 export default function ContaminationReports({ batchId }: Props) {
   const { user } = useAuth();
+  const { canEdit } = usePermissions();
   const [reports, setReports] = useState<ContaminationReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -94,7 +96,7 @@ export default function ContaminationReports({ batchId }: Props) {
                   {r.manager_note && <p className="text-xs text-blue-600 mt-1 italic">Manager note: {r.manager_note}</p>}
                 </div>
                 <div className="flex-shrink-0 flex gap-1">
-                  {canManage(user?.role ?? '') && r.status === 'Open' && (
+                  {canEdit('contamination') && r.status === 'Open' && (
                     <ReviewButton reportId={r.id} onUpdated={fetchReports} />
                   )}
                 </div>

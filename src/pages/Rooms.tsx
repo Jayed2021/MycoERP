@@ -3,11 +3,12 @@ import { Plus, Edit2, Building2, ChevronDown, ChevronUp, QrCode, Thermometer, Dr
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageLoader } from '../components/LoadingSpinner';
-import { canManage, getRoomTypeLabel, generateQrText, formatRelativeTime } from '../lib/utils';
+import { getRoomTypeLabel, generateQrText, formatRelativeTime } from '../lib/utils';
 import type { Room, Rack } from '../lib/types';
 
 interface LiveReading {
@@ -23,6 +24,7 @@ const ROOM_TYPES = ['lab', 'incubation', 'fruiting', 'storage', 'substrate_prep'
 export default function Rooms() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { canEdit } = usePermissions();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [racks, setRacks] = useState<Record<string, Rack[]>>({});
   const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function Rooms() {
           <h1 className="text-2xl font-bold text-gray-900">{t('rooms.title')}</h1>
           <p className="text-sm text-gray-500">{rooms.length} rooms</p>
         </div>
-        {canManage(user?.role ?? '') && (
+        {canEdit('rooms') && (
           <button onClick={() => { setEditRoom(null); setShowRoomModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
             <Plus size={16} /> {t('rooms.newRoom')}
@@ -173,7 +175,7 @@ export default function Rooms() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400">{racks[room.id]?.length ?? 0} rack{(racks[room.id]?.length ?? 0) !== 1 ? 's' : ''}</span>
-                  {canManage(user?.role ?? '') && (
+                  {canEdit('rooms') && (
                     <>
                       <button onClick={e => { e.stopPropagation(); setShowRackModal(room.id); setEditRack(null); }}
                         className="px-2 py-1 text-xs text-emerald-600 font-medium hover:bg-emerald-50 rounded">+ {t('rooms.newRack')}</button>
@@ -203,7 +205,7 @@ export default function Rooms() {
                             <span className="text-sm font-medium text-gray-900">{rack.name}</span>
                             <span className="text-xs text-gray-400 ml-2">{rack.shelf_count ?? 0} shelves</span>
                           </div>
-                          {canManage(user?.role ?? '') && (
+                          {canEdit('rooms') && (
                             <>
                               <button onClick={() => generateRackQr(rack)}
                                 title="Generate QR for rack"

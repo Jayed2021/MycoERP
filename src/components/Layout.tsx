@@ -4,9 +4,10 @@ import {
   LayoutDashboard, FlaskConical, Layers, Wheat, Box, Sprout, Scissors,
   ClipboardList, PackageOpen, Building2, BookOpen, BarChart3, Users,
   Settings, Bell, LogOut, Menu, X, ChevronRight, Thermometer, AlertTriangle,
-  Leaf, ChevronDown, Beaker, ScanLine, QrCode, Cpu,
+  Leaf, ChevronDown, Beaker, ScanLine, QrCode, Cpu, Shield,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { navigate } from '../hooks/useRoute';
 import { supabase } from '../lib/supabase';
 import { LanguageSelector } from './LanguageSelector';
@@ -16,31 +17,32 @@ interface NavItem {
   labelKey: string;
   path: string;
   icon: React.ElementType;
-  roles?: string[];
+  module?: string;
   group?: string;
 }
 
 const navItems: NavItem[] = [
-  { labelKey: 'nav.dashboard', path: '/dashboard', icon: LayoutDashboard, group: 'main' },
-  { labelKey: 'nav.tasks', path: '/tasks', icon: ClipboardList, group: 'main' },
-  { labelKey: 'nav.scanQr', path: '/scan', icon: ScanLine, group: 'main' },
-  { labelKey: 'nav.batches', path: '/batches', icon: Layers, group: 'production' },
-  { labelKey: 'nav.labAgar', path: '/batches?type=agar', icon: FlaskConical, group: 'production' },
-  { labelKey: 'nav.liquidCulture', path: '/batches?type=liquid_culture', icon: Beaker, group: 'production' },
-  { labelKey: 'nav.grainSpawn', path: '/batches?type=grain_spawn', icon: Wheat, group: 'production' },
-  { labelKey: 'nav.substrate', path: '/batches?type=substrate', icon: Box, group: 'production' },
-  { labelKey: 'nav.fruiting', path: '/batches?type=fruiting_block', icon: Sprout, group: 'production' },
-  { labelKey: 'nav.harvest', path: '/harvest', icon: Scissors, group: 'production' },
-  { labelKey: 'nav.contamination', path: '/contamination', icon: AlertTriangle, group: 'production' },
-  { labelKey: 'nav.envLogs', path: '/env-logs', icon: Thermometer, group: 'production' },
-  { labelKey: 'nav.inventory', path: '/inventory', icon: PackageOpen, group: 'resources' },
-  { labelKey: 'nav.rooms', path: '/rooms', icon: Building2, group: 'resources' },
-  { labelKey: 'nav.speciesStrains', path: '/species', icon: Leaf, group: 'resources' },
-  { labelKey: 'nav.sopTemplates', path: '/templates', icon: BookOpen, group: 'resources' },
-  { labelKey: 'nav.qrCodes', path: '/qr', icon: QrCode, group: 'resources', roles: ['admin', 'manager'] },
-  { labelKey: 'nav.reports', path: '/reports', icon: BarChart3, group: 'reporting', roles: ['admin', 'manager'] },
-  { labelKey: 'nav.users', path: '/users', icon: Users, group: 'admin', roles: ['admin'] },
-  { labelKey: 'nav.iotDevices', path: '/devices', icon: Cpu, group: 'admin', roles: ['admin'] },
+  { labelKey: 'nav.dashboard', path: '/dashboard', icon: LayoutDashboard, module: 'dashboard', group: 'main' },
+  { labelKey: 'nav.tasks', path: '/tasks', icon: ClipboardList, module: 'tasks', group: 'main' },
+  { labelKey: 'nav.scanQr', path: '/scan', icon: ScanLine, module: 'qr_codes', group: 'main' },
+  { labelKey: 'nav.batches', path: '/batches', icon: Layers, module: 'batches', group: 'production' },
+  { labelKey: 'nav.labAgar', path: '/batches?type=agar', icon: FlaskConical, module: 'batches', group: 'production' },
+  { labelKey: 'nav.liquidCulture', path: '/batches?type=liquid_culture', icon: Beaker, module: 'batches', group: 'production' },
+  { labelKey: 'nav.grainSpawn', path: '/batches?type=grain_spawn', icon: Wheat, module: 'batches', group: 'production' },
+  { labelKey: 'nav.substrate', path: '/batches?type=substrate', icon: Box, module: 'batches', group: 'production' },
+  { labelKey: 'nav.fruiting', path: '/batches?type=fruiting_block', icon: Sprout, module: 'batches', group: 'production' },
+  { labelKey: 'nav.harvest', path: '/harvest', icon: Scissors, module: 'harvests', group: 'production' },
+  { labelKey: 'nav.contamination', path: '/contamination', icon: AlertTriangle, module: 'contamination', group: 'production' },
+  { labelKey: 'nav.envLogs', path: '/env-logs', icon: Thermometer, module: 'env_logs', group: 'production' },
+  { labelKey: 'nav.inventory', path: '/inventory', icon: PackageOpen, module: 'inventory', group: 'resources' },
+  { labelKey: 'nav.rooms', path: '/rooms', icon: Building2, module: 'rooms', group: 'resources' },
+  { labelKey: 'nav.speciesStrains', path: '/species', icon: Leaf, module: 'species_strains', group: 'resources' },
+  { labelKey: 'nav.sopTemplates', path: '/templates', icon: BookOpen, module: 'process_templates', group: 'resources' },
+  { labelKey: 'nav.qrCodes', path: '/qr', icon: QrCode, module: 'qr_codes', group: 'resources' },
+  { labelKey: 'nav.reports', path: '/reports', icon: BarChart3, module: 'reports', group: 'reporting' },
+  { labelKey: 'nav.users', path: '/users', icon: Users, module: 'users', group: 'admin' },
+  { labelKey: 'nav.permissions', path: '/permissions', icon: Shield, module: 'users', group: 'admin' },
+  { labelKey: 'nav.iotDevices', path: '/devices', icon: Cpu, module: 'devices', group: 'admin' },
 ];
 
 const groupLabelKeys: Record<string, string> = {
@@ -106,8 +108,10 @@ export function Layout({ currentPath, children }: Props) {
     return currentPath === item.path;
   }
 
+  const { canView } = usePermissions();
+
   const visibleItems = navItems.filter(item =>
-    !item.roles || item.roles.includes(user?.role ?? '')
+    !item.module || canView(item.module)
   );
 
   const groups = ['main', 'production', 'resources', 'reporting', 'admin'];

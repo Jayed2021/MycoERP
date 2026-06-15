@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, BookOpen, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageLoader } from '../components/LoadingSpinner';
-import { canManage, getBatchTypeLabel } from '../lib/utils';
+import { getBatchTypeLabel } from '../lib/utils';
 import type { ProcessTemplate, ProcessTemplateStep, Species } from '../lib/types';
 
 const BATCH_TYPES = ['agar', 'liquid_culture', 'grain_spawn', 'substrate', 'fruiting_block', 'harvest', 'other'];
@@ -15,6 +16,7 @@ const DEPTS = ['Lab', 'Spawn', 'Substrate', 'Incubation', 'Fruiting', 'Harvest',
 
 export default function ProcessTemplates() {
   const { user } = useAuth();
+  const { canEdit } = usePermissions();
   const [templates, setTemplates] = useState<ProcessTemplate[]>([]);
   const [steps, setSteps] = useState<Record<string, ProcessTemplateStep[]>>({});
   const [loading, setLoading] = useState(true);
@@ -62,7 +64,7 @@ export default function ProcessTemplates() {
           <h1 className="text-2xl font-bold text-gray-900">SOP Templates</h1>
           <p className="text-sm text-gray-500">{templates.length} templates · Auto-generate tasks for batches</p>
         </div>
-        {canManage(user?.role ?? '') && (
+        {canEdit('process_templates') && (
           <button onClick={() => { setEditTemplate(null); setShowTemplateModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
             <Plus size={16} /> New Template
@@ -90,7 +92,7 @@ export default function ProcessTemplates() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400">{steps[tmpl.id]?.length ?? 0} steps</span>
-                  {canManage(user?.role ?? '') && (
+                  {canEdit('process_templates') && (
                     <>
                       <button onClick={e => { e.stopPropagation(); setShowStepModal(tmpl.id); setEditStep(null); }}
                         className="px-2 py-1 text-xs text-emerald-600 font-medium hover:bg-emerald-50 rounded">+ Step</button>
@@ -127,7 +129,7 @@ export default function ProcessTemplates() {
                             {step.description && <p className="text-xs text-gray-500 mt-0.5">{step.description}</p>}
                             <p className="text-xs text-gray-400 mt-0.5">{step.assigned_role ?? ''}{step.assigned_department ? ` · ${step.assigned_department}` : ''}</p>
                           </div>
-                          {canManage(user?.role ?? '') && (
+                          {canEdit('process_templates') && (
                             <div className="flex gap-1 flex-shrink-0">
                               <button onClick={() => { setEditStep(step); setShowStepModal(tmpl.id); }}
                                 className="p-1 rounded hover:bg-gray-100"><Edit2 size={12} className="text-gray-400" /></button>

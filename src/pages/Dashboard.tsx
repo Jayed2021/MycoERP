@@ -8,10 +8,11 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { navigate } from '../hooks/useRoute';
 import { StatusBadge } from '../components/StatusBadge';
 import { PageLoader } from '../components/LoadingSpinner';
-import { formatRelativeTime, getOverdueDuration, getAlertTypeLabel, getAlertTypeColor, canManage } from '../lib/utils';
+import { formatRelativeTime, getOverdueDuration, getAlertTypeLabel, getAlertTypeColor } from '../lib/utils';
 import type { Batch, Task, EnvironmentalAlert } from '../lib/types';
 
 interface Stats {
@@ -36,6 +37,7 @@ const PIPELINE_STAGES = [
 export default function Dashboard() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { canCreate } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
   const [todayTasks, setTodayTasks] = useState<Task[]>([]);
@@ -163,7 +165,7 @@ export default function Dashboard() {
               <Thermometer size={15} className="text-red-500" />
               {t('dashboard.environmentalAlerts')} ({alerts.length})
             </h2>
-            {canManage(user?.role ?? '') && (
+            {canCreate('tasks') && (
               <button onClick={() => navigate('/devices')} className="text-xs text-emerald-600 hover:underline flex items-center gap-1">
                 {t('dashboard.manageDevices')} <ArrowRight size={11} />
               </button>
