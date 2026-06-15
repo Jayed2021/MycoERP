@@ -2,12 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Search, Filter, ChevronRight, Layers, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { navigate } from '../hooks/useRoute';
+import { useAuth } from '../contexts/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageLoader } from '../components/LoadingSpinner';
 import { Modal } from '../components/Modal';
-import { formatDate, getBatchTypeLabel } from '../lib/utils';
-import type { Batch, Species, Strain, Room, Profile } from '../lib/types';
+import { BatchCreatedDialog } from '../components/BatchCreatedDialog';
+import { formatDate, getBatchTypeLabel, generateQrText } from '../lib/utils';
+import type { Batch, Species, Strain, Room } from '../lib/types';
 
 const BATCH_TYPES = ['agar', 'liquid_culture', 'grain_spawn', 'substrate', 'fruiting_block', 'harvest', 'other'];
 const STATUSES = ['Planned', 'Prepared', 'Inoculated', 'Incubating', 'Colonized', 'Fruiting', 'Pinning', 'Ready to Harvest', 'Contaminated', 'Discarded', 'Closed', 'Spent'];
@@ -31,6 +33,7 @@ export default function BatchList({ initialType = '' }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const [speciesList, setSpeciesList] = useState<Species[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [createdBatch, setCreatedBatch] = useState<{ batch: any; qrText: string } | null>(null);
 
   useEffect(() => {
     supabase.from('species').select('*').eq('is_active', true).then(({ data }) => setSpeciesList(data ?? []));
@@ -198,7 +201,28 @@ export default function BatchList({ initialType = '' }: Props) {
         </div>
       )}
 
-      {showCreate && <BatchCreateModal defaultType={filters.type} onClose={() => setShowCreate(false)} onCreated={fetchBatches} />}
+      {showCreate && (
+        <BatchCreateModal
+          defaultType={filters.type}
+          onClose={() => setShowCreate(false)}
+          onCreated={(batchInfo, qrText) => {
+            fetchBatches();
+            setShowCreate(false);
+            if (batchInfo && qrText) {
+              setCreatedBatch({ batch: batchInfo, qrText });
+            }
+          }}
+        />
+      )}
+
+      {createdBatch && (
+        <BatchCreatedDialog
+          batch={createdBatch.batch}
+          qrText={createdBatch.qrText}
+          onClose={() => setCreatedBatch(null)}
+          onGoToBatch={() => { setCreatedBatch(null); navigate('/batches/' + createdBatch.batch.id); }}
+        />
+      )}
     </div>
   );
 }
@@ -213,7 +237,8 @@ const UNIT_DEFAULTS: Record<string, string> = {
   other: 'units',
 };
 
-function BatchCreateModal({ defaultType, onClose, onCreated }: { defaultType?: string; onClose: () => void; onCreated: () => void }) {
+function BatchCreateModal({ defaultType, onClose, onCreated }: { defaultType?: string; onClose: () => void; onCreated: (batchInfo?: any, qrText?: string) => void }) {
+  const { user } = useAuth();
   const initialType = defaultType && BATCH_TYPES.includes(defaultType) ? defaultType : 'agar';
   const [form, setForm] = useState({
     batch_type: initialType,
@@ -308,9 +333,31 @@ function BatchCreateModal({ defaultType, onClose, onCreated }: { defaultType?: s
         description: `Batch ${batch_code} created with ${form.quantity} ${form.unit}`,
       });
 
-      onCreated();
-      navigate('/batches/' + batch.id);
-      onClose();
+      // Auto-generate QR code
+      const selectedSpecies = species.find(s => s.id === form.species_id);
+      const selectedStrain = strains.find(s => s.id === form.strain_id);
+      const selectedRoom = rooms.find(r => r.id === form.room_id);
+
+      const qrText = generateQrText('batch', batch_code);
+      await supabase.from('qr_codes').insert({
+        qr_text: qrText,
+        entity_type: 'batch',
+        entity_id: batch.id,
+        label: batch_code,
+        description: `${getBatchTypeLabel(form.batch_type)}${selectedSpecies ? ' — ' + selectedSpecies.name : ''}`,
+        status: 'Active',
+        created_by: user?.id ?? null,
+      });
+
+      onCreated({
+        id: batch.id,
+        batch_code,
+        batch_type: form.batch_type,
+        species_name: selectedSpecies?.name,
+        strain_code: selectedStrain?.strain_code,
+        start_date: form.start_date,
+        room_name: selectedRoom?.name,
+      }, qrText);
     } finally {
       setLoading(false);
     }

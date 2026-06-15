@@ -1,23 +1,55 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import jsQR from 'jsqr';
-import { Camera, CameraOff, ArrowLeft, CheckCircle2, XCircle, AlertTriangle, Loader2, QrCode } from 'lucide-react';
+import { Camera, CameraOff, ArrowLeft, CheckCircle2, XCircle, AlertTriangle, Loader2, QrCode, WifiOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { navigate } from '../hooks/useRoute';
-import { getQrEntityTypeLabel } from '../lib/utils';
+import { getQrEntityTypeLabel, parseQrPayload } from '../lib/utils';
 import type { QrCode as QrCodeType, QrScanResult } from '../lib/types';
+import type { QrOfflineData } from '../lib/utils';
 
 interface ScanState {
-  status: 'idle' | 'scanning' | 'loading' | 'success' | 'error';
+  status: 'idle' | 'scanning' | 'loading' | 'success' | 'error' | 'offline';
   qrCode?: QrCodeType;
+  offlineData?: QrOfflineData;
   errorMessage?: string;
   scanResult?: QrScanResult;
 }
 
+const SCAN_LOG_QUEUE_KEY = 'myco_scan_log_queue';
+
+function queueScanLog(entry: any) {
+  try {
+    const queue = JSON.parse(localStorage.getItem(SCAN_LOG_QUEUE_KEY) ?? '[]');
+    queue.push({ ...entry, queued_at: new Date().toISOString() });
+    localStorage.setItem(SCAN_LOG_QUEUE_KEY, JSON.stringify(queue));
+  } catch { /* ignore storage errors */ }
+}
+
+async function flushScanLogQueue() {
+  try {
+    const raw = localStorage.getItem(SCAN_LOG_QUEUE_KEY);
+    if (!raw) return;
+    const queue = JSON.parse(raw);
+    if (queue.length === 0) return;
+    const { error } = await supabase.from('qr_scan_logs').insert(queue.map((e: any) => {
+      const { queued_at, ...rest } = e;
+      return rest;
+    }));
+    if (!error) localStorage.removeItem(SCAN_LOG_QUEUE_KEY);
+  } catch { /* will retry next time */ }
+}
+
 function extractQrText(raw: string): string {
+  // New payload format: MYCO|QR-BATCH-...|batch|label|info|date
+  if (raw.startsWith('MYCO|')) {
+    const parts = raw.split('|');
+    return parts[1] ?? raw;
+  }
+  // Legacy URL format
   try {
     const url = new URL(raw);
-    const hash = url.hash; // e.g. #/scan?code=QR-BATCH-...
+    const hash = url.hash;
     const match = hash.match(/[?&]code=([^&]+)/);
     if (match) return decodeURIComponent(match[1]);
   } catch {
@@ -55,10 +87,10 @@ export default function QrScanner({
   }, []);
 
   useEffect(() => {
+    flushScanLogQueue();
     return () => stopCamera();
   }, [stopCamera]);
 
-  // Auto-process code from URL param
   useEffect(() => {
     if (initialCode && state.status === 'idle') {
       processCode(initialCode);
@@ -114,58 +146,76 @@ export default function QrScanner({
   }
 
   async function processCode(raw: string) {
+    const offlineData = parseQrPayload(raw);
     const qrText = extractQrText(raw);
     if (!qrText) return;
 
     setState({ status: 'loading' });
 
-    const { data: qrCode } = await supabase
-      .from('qr_codes')
-      .select('*, creator:profiles!created_by(full_name)')
-      .eq('qr_text', qrText)
-      .maybeSingle();
+    // Try online lookup
+    try {
+      const { data: qrCode } = await supabase
+        .from('qr_codes')
+        .select('*, creator:profiles!created_by(full_name)')
+        .eq('qr_text', qrText)
+        .maybeSingle();
 
-    let scanResult: QrScanResult = 'Success';
+      let scanResult: QrScanResult = 'Success';
 
-    if (!qrCode) {
-      scanResult = 'Invalid code';
-    } else if (qrCode.status !== 'Active') {
-      scanResult = 'Inactive code';
+      if (!qrCode) {
+        scanResult = 'Invalid code';
+      } else if (qrCode.status !== 'Active') {
+        scanResult = 'Inactive code';
+      }
+
+      // Log scan
+      await supabase.from('qr_scan_logs').insert({
+        qr_code_id: qrCode?.id ?? null,
+        scanned_code: qrText,
+        entity_type: qrCode?.entity_type ?? offlineData?.type ?? null,
+        entity_id: qrCode?.entity_id ?? null,
+        scanned_by: user?.id ?? null,
+        scan_context: taskId ? 'task_verification' : 'general',
+        related_task_id: taskId ?? null,
+        result: scanResult,
+      });
+
+      if (qrCode && scanResult === 'Success') {
+        await supabase.from('qr_codes').update({ last_scanned_at: new Date().toISOString() }).eq('id', qrCode.id);
+      }
+
+      if (scanResult !== 'Success' || !qrCode) {
+        setState({ status: 'error', errorMessage: scanResult, scanResult });
+        return;
+      }
+
+      if (taskId && required && !verificationDone) {
+        await handleTaskVerification(qrCode, qrText);
+        return;
+      }
+
+      setState({ status: 'success', qrCode, scanResult });
+    } catch {
+      // Network error -- fall back to offline mode
+      if (offlineData) {
+        queueScanLog({
+          qr_code_id: null,
+          scanned_code: qrText,
+          entity_type: offlineData.type,
+          entity_id: null,
+          scanned_by: user?.id ?? null,
+          scan_context: taskId ? 'task_verification' : 'general',
+          related_task_id: taskId ?? null,
+          result: 'Success',
+        });
+        setState({ status: 'offline', offlineData });
+      } else {
+        setState({ status: 'error', errorMessage: 'No network and code format not recognized offline' });
+      }
     }
-
-    // Log scan
-    await supabase.from('qr_scan_logs').insert({
-      qr_code_id: qrCode?.id ?? null,
-      scanned_code: qrText,
-      entity_type: qrCode?.entity_type ?? null,
-      entity_id: qrCode?.entity_id ?? null,
-      scanned_by: user?.id ?? null,
-      scan_context: taskId ? 'task_verification' : 'general',
-      related_task_id: taskId ?? null,
-      result: scanResult,
-    });
-
-    // Update last_scanned_at
-    if (qrCode && scanResult === 'Success') {
-      await supabase.from('qr_codes').update({ last_scanned_at: new Date().toISOString() }).eq('id', qrCode.id);
-    }
-
-    if (scanResult !== 'Success' || !qrCode) {
-      setState({ status: 'error', errorMessage: scanResult, scanResult });
-      return;
-    }
-
-    // Task QR verification flow
-    if (taskId && required && !verificationDone) {
-      await handleTaskVerification(qrCode, qrText);
-      return;
-    }
-
-    setState({ status: 'success', qrCode, scanResult });
   }
 
-  async function handleTaskVerification(qrCode: QrCodeType, qrText: string) {
-    // Fetch task to check expected entity
+  async function handleTaskVerification(qrCode: QrCodeType, _qrText: string) {
     const { data: task } = await supabase
       .from('tasks')
       .select('*')
@@ -177,7 +227,6 @@ export default function QrScanner({
     if (!task) {
       verResult = 'Wrong QR';
     } else if (required === 'batch' && task.batch_id) {
-      // Check that scanned QR belongs to the task's batch
       if (qrCode.entity_type !== 'batch' || qrCode.entity_id !== task.batch_id) {
         verResult = 'Wrong batch';
       }
@@ -211,7 +260,6 @@ export default function QrScanner({
     setVerificationDone(true);
 
     if (verResult === 'Matched') {
-      // Navigate back to task with verified param
       navigate(`/tasks/${taskId}`, { verified: required! });
     } else {
       setState({ status: 'error', errorMessage: verResult, scanResult: 'Wrong entity' as any });
@@ -309,6 +357,61 @@ export default function QrScanner({
                 View Batch
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Offline result */}
+      {state.status === 'offline' && state.offlineData && (
+        <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <WifiOff size={20} className="text-amber-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900">Offline Mode</p>
+              <p className="text-xs text-amber-600">Data from QR code (not verified with server)</p>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Type</p>
+              <p className="text-sm font-semibold text-gray-900">{getQrEntityTypeLabel(state.offlineData.type)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Label / Batch Code</p>
+              <p className="text-sm font-mono text-gray-700">{state.offlineData.label}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">QR Code</p>
+              <p className="text-sm font-mono text-gray-700">{state.offlineData.code}</p>
+            </div>
+            {state.offlineData.info && (
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Info</p>
+                <p className="text-sm text-gray-600">{state.offlineData.info}</p>
+              </div>
+            )}
+            {state.offlineData.date && (
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Date</p>
+                <p className="text-sm text-gray-600">{state.offlineData.date}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 p-2.5 bg-amber-50 rounded-lg">
+            <p className="text-xs text-amber-700">Scan log queued locally. It will sync when you are back online.</p>
+          </div>
+
+          <div className="mt-4">
+            <button
+              onClick={reset}
+              className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              Scan Another
+            </button>
           </div>
         </div>
       )}

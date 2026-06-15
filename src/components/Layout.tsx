@@ -42,6 +42,7 @@ const navItems: NavItem[] = [
   { labelKey: 'nav.reports', path: '/reports', icon: BarChart3, module: 'reports', group: 'reporting' },
   { labelKey: 'nav.users', path: '/users', icon: Users, module: 'users', group: 'admin' },
   { labelKey: 'nav.permissions', path: '/permissions', icon: Shield, module: 'users', group: 'admin' },
+  { labelKey: 'nav.settings', path: '/settings', icon: Settings, module: 'users', group: 'admin' },
   { labelKey: 'nav.iotDevices', path: '/devices', icon: Cpu, module: 'devices', group: 'admin' },
 ];
 

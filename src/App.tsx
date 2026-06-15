@@ -19,6 +19,7 @@ import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
 import UserManagement from './pages/Users';
 import Permissions from './pages/Permissions';
+import AppSettings from './pages/AppSettings';
 import EnvironmentalLogs from './pages/EnvironmentalLogs';
 import QrManager from './pages/QrManager';
 import QrPrint from './pages/QrPrint';
@@ -92,6 +93,8 @@ function AppRoutes() {
         return <UserManagement />;
       case '/permissions':
         return <Permissions />;
+      case '/settings':
+        return <AppSettings />;
       case '/env-logs':
         return <EnvironmentalLogs />;
       case '/scan':

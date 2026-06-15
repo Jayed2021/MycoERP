@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Printer, Download, CheckCircle2, QrCode, Tag } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { buildQrUrl, getQrStatusColor, getQrEntityTypeLabel } from '../lib/utils';
+import { buildQrPayload, getQrStatusColor, getQrEntityTypeLabel } from '../lib/utils';
 import { StatusBadge } from './StatusBadge';
 import type { QrCode as QrCodeType } from '../lib/types';
 
@@ -18,7 +18,7 @@ export function QrCodeDisplay({ qrCode, size = 160, showActions = true, onUpdate
   const [printing, setPrinting] = useState(false);
   const [marked, setMarked] = useState(!!qrCode.printed_at);
 
-  const qrUrl = buildQrUrl(qrCode.qr_text);
+  const qrValue = buildQrPayload(qrCode.qr_text, qrCode.entity_type, qrCode.label, qrCode.description ?? undefined);
 
   async function markPrinted() {
     await supabase.from('qr_codes').update({ printed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', qrCode.id);
@@ -88,7 +88,7 @@ export function QrCodeDisplay({ qrCode, size = 160, showActions = true, onUpdate
     <div className="flex flex-col items-center gap-3">
       <div ref={svgRef} className="p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
         <QRCodeSVG
-          value={qrUrl}
+          value={qrValue}
           size={size}
           level="M"
           includeMargin={false}

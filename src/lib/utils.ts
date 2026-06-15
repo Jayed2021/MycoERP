@@ -189,6 +189,34 @@ export function buildQrUrl(qrText: string): string {
   return `${base}#/scan?code=${encodeURIComponent(qrText)}`;
 }
 
+export interface QrOfflineData {
+  code: string;
+  type: string;
+  label: string;
+  info?: string;
+  date?: string;
+}
+
+export function buildQrPayload(qrText: string, entityType: string, label: string, info?: string, date?: string): string {
+  const parts = ['MYCO', qrText, entityType, label];
+  if (info) parts.push(info);
+  if (date) parts.push(date);
+  return parts.join('|');
+}
+
+export function parseQrPayload(raw: string): QrOfflineData | null {
+  if (!raw.startsWith('MYCO|')) return null;
+  const parts = raw.split('|');
+  if (parts.length < 4) return null;
+  return {
+    code: parts[1],
+    type: parts[2],
+    label: parts[3],
+    info: parts[4] || undefined,
+    date: parts[5] || undefined,
+  };
+}
+
 export function getQrStatusColor(status: string): string {
   const colors: Record<string, string> = {
     'Active': 'bg-emerald-100 text-emerald-800',
