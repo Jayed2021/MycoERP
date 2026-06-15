@@ -198,19 +198,30 @@ export default function BatchList({ initialType = '' }: Props) {
         </div>
       )}
 
-      {showCreate && <BatchCreateModal onClose={() => setShowCreate(false)} onCreated={fetchBatches} />}
+      {showCreate && <BatchCreateModal defaultType={filters.type} onClose={() => setShowCreate(false)} onCreated={fetchBatches} />}
     </div>
   );
 }
 
-function BatchCreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+const UNIT_DEFAULTS: Record<string, string> = {
+  agar: 'plates',
+  liquid_culture: 'bottles',
+  grain_spawn: 'jars',
+  substrate: 'bags',
+  fruiting_block: 'blocks',
+  harvest: 'kg',
+  other: 'units',
+};
+
+function BatchCreateModal({ defaultType, onClose, onCreated }: { defaultType?: string; onClose: () => void; onCreated: () => void }) {
+  const initialType = defaultType && BATCH_TYPES.includes(defaultType) ? defaultType : 'agar';
   const [form, setForm] = useState({
-    batch_type: 'fruiting_block',
+    batch_type: initialType,
     species_id: '',
     strain_id: '',
     recipe_id: '',
     quantity: '',
-    unit: 'blocks',
+    unit: UNIT_DEFAULTS[initialType] ?? 'units',
     start_date: new Date().toISOString().split('T')[0],
     notes: '',
     room_id: '',
@@ -313,7 +324,7 @@ function BatchCreateModal({ onClose, onCreated }: { onClose: () => void; onCreat
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Batch Type *</label>
-            <select value={form.batch_type} onChange={e => setForm(f => ({ ...f, batch_type: e.target.value, template_id: '' }))}
+            <select value={form.batch_type} onChange={e => setForm(f => ({ ...f, batch_type: e.target.value, template_id: '', unit: UNIT_DEFAULTS[e.target.value] ?? 'units' }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
               {BATCH_TYPES.map(t => <option key={t} value={t}>{getBatchTypeLabel(t)}</option>)}
             </select>
