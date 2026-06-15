@@ -1,13 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Edit2, Building2, ChevronDown, ChevronUp, QrCode } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Edit2, Building2, ChevronDown, ChevronUp, QrCode, Thermometer, Droplets } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageLoader } from '../components/LoadingSpinner';
-import { canManage, getRoomTypeLabel, generateQrText } from '../lib/utils';
-import type { Room, Rack, Shelf } from '../lib/types';
+import { canManage, getRoomTypeLabel, generateQrText, formatRelativeTime } from '../lib/utils';
+import type { Room, Rack } from '../lib/types';
+
+interface LiveReading {
+  room_id: string;
+  temperature: number | null;
+  humidity: number | null;
+  co2: number | null;
+  logged_at: string;
+}
 
 const ROOM_TYPES = ['lab', 'incubation', 'fruiting', 'storage', 'substrate_prep', 'packaging', 'waste', 'other'];
 
@@ -21,6 +29,7 @@ export default function Rooms() {
   const [showRackModal, setShowRackModal] = useState<string | null>(null);
   const [editRoom, setEditRoom] = useState<Room | null>(null);
   const [editRack, setEditRack] = useState<Rack | null>(null);
+  const [liveReadings, setLiveReadings] = useState<Record<string, LiveReading>>({});
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -36,6 +45,20 @@ export default function Rooms() {
       grouped[r.room_id!].push(r);
     }
     setRacks(grouped);
+
+    // Fetch latest reading per room (within last 30 min)
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const { data: recentLogs } = await supabase.from('environmental_logs')
+      .select('room_id, temperature, humidity, co2, logged_at')
+      .gte('logged_at', thirtyMinAgo)
+      .order('logged_at', { ascending: false });
+    const latestByRoom: Record<string, LiveReading> = {};
+    for (const log of recentLogs ?? []) {
+      if (log.room_id && !latestByRoom[log.room_id]) {
+        latestByRoom[log.room_id] = log as LiveReading;
+      }
+    }
+    setLiveReadings(latestByRoom);
     setLoading(false);
   }
 
@@ -107,13 +130,44 @@ export default function Rooms() {
                       {getRoomTypeLabel(room.room_type)}
                     </span>
                     <StatusBadge label={room.is_active ? 'Active' : 'Inactive'} color={room.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'} />
+                    {liveReadings[room.id] && (
+                      <span className="relative flex h-2 w-2 ml-1">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                    )}
                   </div>
-                  {(room.temp_min || room.humidity_min) && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {room.temp_min && room.temp_max ? `${room.temp_min}–${room.temp_max}°C` : ''}
-                      {room.humidity_min && room.humidity_max ? ` · ${room.humidity_min}–${room.humidity_max}% RH` : ''}
-                    </p>
-                  )}
+                  <div className="flex items-center gap-3 mt-0.5">
+                    {(room.temp_min || room.humidity_min) && (
+                      <p className="text-xs text-gray-400">
+                        {room.temp_min && room.temp_max ? `${room.temp_min}–${room.temp_max}°C` : ''}
+                        {room.humidity_min && room.humidity_max ? ` · ${room.humidity_min}–${room.humidity_max}% RH` : ''}
+                      </p>
+                    )}
+                    {liveReadings[room.id] && (
+                      <div className="flex items-center gap-2 text-xs">
+                        {liveReadings[room.id].temperature != null && (
+                          <span className={`flex items-center gap-0.5 font-medium ${
+                            (room.temp_max && liveReadings[room.id].temperature! > room.temp_max) ||
+                            (room.temp_min && liveReadings[room.id].temperature! < room.temp_min)
+                              ? 'text-red-600' : 'text-emerald-600'
+                          }`}>
+                            <Thermometer size={10} /> {liveReadings[room.id].temperature}°C
+                          </span>
+                        )}
+                        {liveReadings[room.id].humidity != null && (
+                          <span className={`flex items-center gap-0.5 font-medium ${
+                            (room.humidity_max && liveReadings[room.id].humidity! > room.humidity_max) ||
+                            (room.humidity_min && liveReadings[room.id].humidity! < room.humidity_min)
+                              ? 'text-orange-600' : 'text-emerald-600'
+                          }`}>
+                            <Droplets size={10} /> {liveReadings[room.id].humidity}%
+                          </span>
+                        )}
+                        <span className="text-gray-400">{formatRelativeTime(liveReadings[room.id].logged_at)}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400">{racks[room.id]?.length ?? 0} rack{(racks[room.id]?.length ?? 0) !== 1 ? 's' : ''}</span>

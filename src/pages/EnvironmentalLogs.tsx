@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Thermometer, Building2 } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Plus, Thermometer, Cpu, Wifi } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
@@ -9,22 +9,37 @@ import { formatDateTime } from '../lib/utils';
 import type { EnvironmentalLog, Room } from '../lib/types';
 
 export default function EnvironmentalLogs() {
-  const { user } = useAuth();
+  useAuth();
   const [logs, setLogs] = useState<EnvironmentalLog[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRoom, setFilterRoom] = useState('');
+  const [filterSource, setFilterSource] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [liveRooms, setLiveRooms] = useState<Set<string>>(new Set());
 
   const fetchLogs = useCallback(async () => {
     let q = supabase.from('environmental_logs')
-      .select('*, room:rooms(name), logger:profiles(full_name)')
+      .select('*, room:rooms(name), logger:profiles(full_name), device:iot_devices(device_name)')
       .order('logged_at', { ascending: false });
     if (filterRoom) q = q.eq('room_id', filterRoom);
+    if (filterSource) q = q.eq('source', filterSource);
     const { data } = await q.limit(100);
     setLogs(data as EnvironmentalLog[] ?? []);
+
+    // Determine which rooms have recent IoT readings (within 20 min)
+    const twentyMinAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+    const { data: recentIot } = await supabase.from('environmental_logs')
+      .select('room_id')
+      .eq('source', 'iot')
+      .gte('logged_at', twentyMinAgo);
+    const live = new Set<string>();
+    for (const r of recentIot ?? []) {
+      if (r.room_id) live.add(r.room_id);
+    }
+    setLiveRooms(live);
     setLoading(false);
-  }, [filterRoom]);
+  }, [filterRoom, filterSource]);
 
   useEffect(() => {
     supabase.from('rooms').select('*').eq('is_active', true).then(({ data }) => setRooms(data ?? []));
@@ -45,11 +60,29 @@ export default function EnvironmentalLogs() {
         </button>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
         <select value={filterRoom} onChange={e => setFilterRoom(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
           <option value="">All Rooms</option>
-          {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          {rooms.map(r => (
+            <option key={r.id} value={r.id}>
+              {r.name}{liveRooms.has(r.id) ? ' (Live)' : ''}
+            </option>
+          ))}
         </select>
+        <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+          <option value="">All Sources</option>
+          <option value="manual">Manual</option>
+          <option value="iot">IoT Sensor</option>
+        </select>
+        {liveRooms.size > 0 && (
+          <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            {liveRooms.size} room{liveRooms.size !== 1 ? 's' : ''} reporting live
+          </div>
+        )}
       </div>
 
       {loading ? <PageLoader /> : logs.length === 0 ? (
@@ -62,6 +95,7 @@ export default function EnvironmentalLogs() {
                 <tr className="border-b border-gray-100 bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   <th className="text-left px-5 py-3">Date/Time</th>
                   <th className="text-left px-3 py-3">Room</th>
+                  <th className="text-left px-3 py-3">Source</th>
                   <th className="text-right px-3 py-3">Temp (°C)</th>
                   <th className="text-right px-3 py-3">Humidity (%)</th>
                   <th className="text-right px-3 py-3 hidden lg:table-cell">CO₂</th>
@@ -74,7 +108,26 @@ export default function EnvironmentalLogs() {
                 {logs.map(log => (
                   <tr key={log.id} className="hover:bg-gray-50">
                     <td className="px-5 py-3 text-gray-700">{formatDateTime(log.logged_at)}</td>
-                    <td className="px-3 py-3 font-medium text-gray-900">{(log as any).room?.name ?? '—'}</td>
+                    <td className="px-3 py-3 font-medium text-gray-900">
+                      <div className="flex items-center gap-1.5">
+                        {(log as any).room?.name ?? '—'}
+                        {log.source === 'iot' && liveRooms.has(log.room_id ?? '') && (
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      {log.source === 'iot' ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                          <Cpu size={10} /> IoT
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">Manual</span>
+                      )}
+                    </td>
                     <td className="px-3 py-3 text-right">
                       {log.temperature !== null ? (
                         <span className={`font-medium ${log.temperature > 28 ? 'text-red-500' : log.temperature < 18 ? 'text-blue-500' : 'text-gray-900'}`}>{log.temperature}°</span>
@@ -92,7 +145,15 @@ export default function EnvironmentalLogs() {
                     <td className="px-3 py-3 hidden lg:table-cell">
                       {log.humidifier_status && <span className={`px-1.5 py-0.5 rounded text-xs ${log.humidifier_status === 'On' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{log.humidifier_status}</span>}
                     </td>
-                    <td className="px-3 py-3 text-gray-500">{(log as any).logger?.full_name ?? '—'}</td>
+                    <td className="px-3 py-3 text-gray-500">
+                      {log.source === 'iot' ? (
+                        <span className="flex items-center gap-1 text-blue-600">
+                          <Wifi size={11} /> {(log as any).device?.device_name ?? 'Sensor'}
+                        </span>
+                      ) : (
+                        (log as any).logger?.full_name ?? '—'
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

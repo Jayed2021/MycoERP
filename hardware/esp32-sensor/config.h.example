@@ -1,0 +1,43 @@
+// MycoERP IoT Sensor Configuration
+// Copy this file to config.h and fill in your values
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// ===== WiFi Credentials =====
+#define WIFI_SSID          "YourFarmWiFi"
+#define WIFI_PASSWORD      "YourWiFiPassword"
+
+// ===== Supabase Edge Function =====
+// Get this from your Supabase project dashboard > Edge Functions
+#define EDGE_FUNCTION_URL  "https://your-project-id.supabase.co/functions/v1/ingest-sensor-data"
+
+// ===== Device Credentials =====
+// These are generated when you register the device in MycoERP admin panel
+#define DEVICE_ID          "your-device-uuid-here"
+#define API_KEY            "your-api-key-here"
+
+// ===== Sensor Configuration =====
+// Reading interval in milliseconds (default: 900000 = 15 minutes)
+#define READING_INTERVAL_MS 900000
+
+// Set to false if MH-Z19B CO2 sensor is not connected
+#define ENABLE_CO2          true
+
+// Set to true to use deep sleep between readings (saves power)
+#define ENABLE_DEEP_SLEEP   false
+
+// ===== Pin Configuration =====
+#define DHT_PIN            4       // GPIO4 for DHT22 data pin
+#define DHT_TYPE           DHT22   // DHT22 (AM2302)
+#define CO2_RX_PIN         16      // ESP32 RX2 (connects to MH-Z19B TX)
+#define CO2_TX_PIN         17      // ESP32 TX2 (connects to MH-Z19B RX)
+#define STATUS_LED_PIN     2       // Built-in LED on most ESP32 boards
+
+// ===== Advanced =====
+// Number of WiFi connection retries before reboot
+#define WIFI_MAX_RETRIES   20
+// Sensor warm-up readings to discard (MH-Z19B needs time)
+#define WARMUP_READINGS    2
+
+#endif // CONFIG_H

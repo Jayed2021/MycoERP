@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Layers, ClipboardList, AlertTriangle, TrendingUp, Sprout,
+  Layers, ClipboardList, AlertTriangle, Sprout,
   Scissors, FlaskConical, Clock, CheckCircle2, XCircle,
-  ArrowRight, Activity, Users, ThermometerSun, ScanLine, QrCode,
+  ArrowRight, Activity, ScanLine, QrCode,
+  Thermometer, CheckCircle,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { navigate } from '../hooks/useRoute';
 import { StatusBadge } from '../components/StatusBadge';
 import { PageLoader } from '../components/LoadingSpinner';
-import { formatDateTime, isOverdue, getOverdueDuration, formatDate } from '../lib/utils';
-import type { Batch, Task } from '../lib/types';
+import { formatRelativeTime, getOverdueDuration, getAlertTypeLabel, getAlertTypeColor, canManage } from '../lib/utils';
+import type { Batch, Task, EnvironmentalAlert } from '../lib/types';
 
 interface Stats {
   activeBatches: number;
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const [upcomingHarvest, setUpcomingHarvest] = useState<Batch[]>([]);
   const [pipeline, setPipeline] = useState<Record<string, number>>({});
   const [qrStats, setQrStats] = useState({ scansToday: 0, failedToday: 0, activeQrCodes: 0 });
+  const [alerts, setAlerts] = useState<EnvironmentalAlert[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -62,8 +64,9 @@ export default function Dashboard() {
         upcomingRes,
         qrScansRes,
         qrActiveRes,
+        alertsRes,
       ] = await Promise.all([
-        supabase.from('batches').select('id, batch_type, status, health_status').not('status', 'in', '("Closed","Discarded","Spent")'),
+        supabase.from('batches').select('id, batch_type, status, health_status, current_stage').not('status', 'in', '("Closed","Discarded","Spent")'),
         supabase.from('tasks').select('*, batch:batches(batch_code), assignee:profiles!tasks_assigned_to_fkey(full_name)').gte('due_at', todayStart).lt('due_at', todayEnd).not('status', 'in', '("Completed","Approved","Cancelled")').order('due_at').limit(20),
         supabase.from('tasks').select('*, batch:batches(batch_code), assignee:profiles!tasks_assigned_to_fkey(full_name)').lt('due_at', now.toISOString()).not('status', 'in', '("Completed","Approved","Cancelled")').order('due_at').limit(20),
         supabase.from('contamination_reports').select('id').gte('created_at', weekAgo),
@@ -71,6 +74,7 @@ export default function Dashboard() {
         supabase.from('batches').select('*, species:species(name), strain:strains(strain_name), room:rooms(name)').in('status', ['Pinning', 'Ready to Harvest', 'Fruiting']).limit(10),
         supabase.from('qr_scan_logs').select('id, result').gte('scanned_at', todayStart).lt('scanned_at', todayEnd),
         supabase.from('qr_codes').select('id', { count: 'exact', head: true }).eq('status', 'Active'),
+        supabase.from('environmental_alerts').select('*, room:rooms(name), device:iot_devices(device_name)').is('resolved_at', null).order('created_at', { ascending: false }).limit(10),
       ]);
 
       const batches = batchesRes.data ?? [];
@@ -109,6 +113,7 @@ export default function Dashboard() {
         failedToday: qrScans.filter(s => s.result !== 'Success').length,
         activeQrCodes: qrActiveRes.count ?? 0,
       });
+      setAlerts(alertsRes.data as EnvironmentalAlert[] ?? []);
     } finally {
       setLoading(false);
     }
@@ -144,6 +149,32 @@ export default function Dashboard() {
         <StatCard icon={XCircle} label="Failed Scans Today" value={qrStats.failedToday} color={qrStats.failedToday > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'} onClick={() => navigate('/qr')} />
         <StatCard icon={QrCode} label="Active QR Codes" value={qrStats.activeQrCodes} color="bg-blue-50 text-blue-600" onClick={() => navigate('/qr')} />
       </div>
+
+      {/* Environmental Alerts */}
+      {alerts.length > 0 && (
+        <div className="bg-white rounded-xl border border-red-200">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-red-100 bg-red-50/30 rounded-t-xl">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Thermometer size={15} className="text-red-500" />
+              Environmental Alerts ({alerts.length})
+            </h2>
+            {canManage(user?.role ?? '') && (
+              <button onClick={() => navigate('/devices')} className="text-xs text-emerald-600 hover:underline flex items-center gap-1">
+                Manage Devices <ArrowRight size={11} />
+              </button>
+            )}
+          </div>
+          <div className="divide-y divide-gray-50">
+            {alerts.slice(0, 5).map(alert => (
+              <AlertRow key={alert.id} alert={alert} onAcknowledge={async () => {
+                if (!user) return;
+                await supabase.from('environmental_alerts').update({ acknowledged_by: user.id, acknowledged_at: new Date().toISOString() }).eq('id', alert.id);
+                fetchDashboardData();
+              }} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Production Pipeline */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -309,5 +340,40 @@ function StatCard({ icon: Icon, label, value, color, onClick }: {
       <p className="text-2xl font-bold text-gray-900 mb-0.5">{value}</p>
       <p className="text-xs text-gray-500 group-hover:text-gray-700 transition-colors">{label}</p>
     </button>
+  );
+}
+
+function AlertRow({ alert, onAcknowledge }: { alert: EnvironmentalAlert; onAcknowledge: () => void }) {
+  const roomName = (alert as any).room?.name ?? 'Unknown Room';
+  const deviceName = (alert as any).device?.device_name;
+
+  return (
+    <div className="flex items-center gap-3 px-5 py-3 hover:bg-red-50/30 transition-colors">
+      <div className={`px-2 py-1 rounded text-xs font-medium ${getAlertTypeColor(alert.alert_type)}`}>
+        {getAlertTypeLabel(alert.alert_type)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900">{roomName}</p>
+        <p className="text-xs text-gray-500">
+          {alert.measured_value} (threshold: {alert.threshold_value})
+          {deviceName && <> &middot; {deviceName}</>}
+          &middot; {formatRelativeTime(alert.created_at)}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {alert.auto_task_id && (
+          <button onClick={() => navigate('/tasks/' + alert.auto_task_id)}
+            className="text-xs text-emerald-600 hover:underline">View Task</button>
+        )}
+        {!alert.acknowledged_at ? (
+          <button onClick={onAcknowledge}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors">
+            <CheckCircle size={12} /> Acknowledge
+          </button>
+        ) : (
+          <span className="text-xs text-gray-400">Acknowledged</span>
+        )}
+      </div>
+    </div>
   );
 }

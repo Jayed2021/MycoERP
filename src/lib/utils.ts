@@ -225,3 +225,34 @@ export function getVerificationResultColor(result: string): string {
   if (result === 'Matched') return 'bg-emerald-100 text-emerald-700';
   return 'bg-red-100 text-red-700';
 }
+
+export function getAlertTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    temp_high: 'High Temperature',
+    temp_low: 'Low Temperature',
+    humidity_high: 'High Humidity',
+    humidity_low: 'Low Humidity',
+    co2_high: 'High CO2',
+  };
+  return labels[type] ?? type;
+}
+
+export function getAlertTypeColor(type: string): string {
+  const colors: Record<string, string> = {
+    temp_high: 'bg-red-100 text-red-700',
+    temp_low: 'bg-blue-100 text-blue-700',
+    humidity_high: 'bg-cyan-100 text-cyan-700',
+    humidity_low: 'bg-orange-100 text-orange-700',
+    co2_high: 'bg-amber-100 text-amber-700',
+  };
+  return colors[type] ?? 'bg-gray-100 text-gray-600';
+}
+
+export function getDeviceStatusColor(lastSeen: string | null, intervalSeconds: number): 'online' | 'stale' | 'offline' {
+  if (!lastSeen) return 'offline';
+  const elapsed = Date.now() - new Date(lastSeen).getTime();
+  const threshold = intervalSeconds * 2 * 1000;
+  if (elapsed <= threshold) return 'online';
+  if (elapsed <= threshold * 2) return 'stale';
+  return 'offline';
+}

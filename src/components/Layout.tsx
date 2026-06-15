@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FlaskConical, Layers, Wheat, Box, Sprout, Scissors,
   ClipboardList, PackageOpen, Building2, BookOpen, BarChart3, Users,
   Settings, Bell, LogOut, Menu, X, ChevronRight, Thermometer, AlertTriangle,
-  Leaf, ChevronDown, Beaker, ScanLine, QrCode,
+  Leaf, ChevronDown, Beaker, ScanLine, QrCode, Cpu,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { navigate } from '../hooks/useRoute';
@@ -38,6 +38,7 @@ const navItems: NavItem[] = [
   { label: 'QR Codes', path: '/qr', icon: QrCode, group: 'resources', roles: ['admin', 'manager'] },
   { label: 'Reports', path: '/reports', icon: BarChart3, group: 'reporting', roles: ['admin', 'manager'] },
   { label: 'Users', path: '/users', icon: Users, group: 'admin', roles: ['admin'] },
+  { label: 'IoT Devices', path: '/devices', icon: Cpu, group: 'admin', roles: ['admin'] },
 ];
 
 const groupLabels: Record<string, string> = {

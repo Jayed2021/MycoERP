@@ -305,9 +305,49 @@ export interface EnvironmentalLog {
   humidifier_status: string | null;
   notes: string | null;
   logged_by: string | null;
+  device_id: string | null;
+  source: 'manual' | 'iot';
   created_at: string;
   room?: Room;
   logger?: Profile;
+  device?: IoTDevice;
+}
+
+export type IoTDeviceType = 'esp32' | 'rpi' | 'other';
+
+export interface IoTDevice {
+  id: string;
+  device_name: string;
+  room_id: string | null;
+  device_type: IoTDeviceType;
+  api_key_hash: string;
+  reporting_interval_seconds: number;
+  last_seen_at: string | null;
+  firmware_version: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  room?: Room;
+}
+
+export type AlertType = 'temp_high' | 'temp_low' | 'humidity_high' | 'humidity_low' | 'co2_high';
+
+export interface EnvironmentalAlert {
+  id: string;
+  room_id: string | null;
+  device_id: string | null;
+  alert_type: AlertType;
+  measured_value: number;
+  threshold_value: number;
+  auto_task_id: string | null;
+  acknowledged_by: string | null;
+  acknowledged_at: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  room?: Room;
+  device?: IoTDevice;
+  acknowledger?: Profile;
+  task?: Task;
 }
 
 export interface InventoryItem {

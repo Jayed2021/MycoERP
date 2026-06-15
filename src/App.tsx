@@ -21,6 +21,7 @@ import EnvironmentalLogs from './pages/EnvironmentalLogs';
 import QrManager from './pages/QrManager';
 import QrPrint from './pages/QrPrint';
 import QrScanner from './pages/QrScanner';
+import Devices from './pages/Devices';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -99,6 +100,8 @@ function AppRoutes() {
         );
       case '/qr':
         return <QrManager />;
+      case '/devices':
+        return <Devices />;
       default:
         return <Dashboard />;
     }
