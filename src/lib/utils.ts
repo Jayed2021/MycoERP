@@ -177,6 +177,7 @@ export function generateQrText(entityType: string, label: string): string {
     harvest_crate: 'QR-CRATE',
     checkpoint: 'QR-CHECKPOINT',
     task: 'QR-TASK',
+    inventory_item: 'QR-INV',
     other: 'QR-OTH',
   }[entityType] ?? 'QR';
 
@@ -237,6 +238,7 @@ export function getQrEntityTypeLabel(type: string): string {
     harvest_crate: 'Harvest Crate',
     checkpoint: 'Checkpoint',
     task: 'Task',
+    inventory_item: 'Inventory Item',
     other: 'Other',
   };
   return labels[type] ?? type;

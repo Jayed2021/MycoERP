@@ -360,6 +360,7 @@ export interface InventoryItem {
   cost_per_unit: number | null;
   supplier: string | null;
   notes: string | null;
+  barcode_text: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -391,7 +392,7 @@ export interface Notification {
   created_at: string;
 }
 
-export type QrEntityType = 'batch' | 'location' | 'rack' | 'shelf' | 'harvest_crate' | 'checkpoint' | 'task' | 'other';
+export type QrEntityType = 'batch' | 'location' | 'rack' | 'shelf' | 'harvest_crate' | 'checkpoint' | 'task' | 'inventory_item' | 'other';
 export type QrStatus = 'Active' | 'Inactive' | 'Lost' | 'Replaced' | 'Archived';
 export type QrScanResult = 'Success' | 'Invalid code' | 'Inactive code' | 'Unauthorized' | 'Wrong location' | 'Wrong entity';
 export type QrVerificationResult = 'Matched' | 'Wrong QR' | 'Wrong location' | 'Wrong batch' | 'Expired';
@@ -480,4 +481,36 @@ export interface TaskWithQr extends Task {
   location_qr_required: boolean;
   checkpoint_qr_required: boolean;
   crate_qr_required: boolean;
+}
+
+export type InventoryAuditStatus = 'In Progress' | 'Completed' | 'Cancelled';
+
+export interface InventoryAudit {
+  id: string;
+  title: string;
+  audit_date: string;
+  conducted_by: string | null;
+  status: InventoryAuditStatus;
+  notes: string | null;
+  total_items: number;
+  items_counted: number;
+  discrepancies_found: number;
+  created_at: string;
+  completed_at: string | null;
+  conductor?: Profile;
+}
+
+export interface InventoryAuditLine {
+  id: string;
+  audit_id: string;
+  item_id: string;
+  expected_stock: number;
+  counted_stock: number | null;
+  discrepancy: number | null;
+  counted_by: string | null;
+  counted_at: string | null;
+  notes: string | null;
+  adjustment_applied: boolean;
+  item?: InventoryItem;
+  counter?: Profile;
 }

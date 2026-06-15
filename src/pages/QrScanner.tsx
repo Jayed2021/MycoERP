@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import jsQR from 'jsqr';
-import { Camera, CameraOff, ArrowLeft, CheckCircle2, XCircle, AlertTriangle, Loader2, QrCode, WifiOff } from 'lucide-react';
+import { Camera, CameraOff, ArrowLeft, CheckCircle2, XCircle, AlertTriangle, Loader2, QrCode, WifiOff, PackageOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { navigate } from '../hooks/useRoute';
 import { getQrEntityTypeLabel, parseQrPayload } from '../lib/utils';
-import type { QrCode as QrCodeType, QrScanResult } from '../lib/types';
+import type { QrCode as QrCodeType, QrScanResult, InventoryItem } from '../lib/types';
 import type { QrOfflineData } from '../lib/utils';
 
 interface ScanState {
@@ -342,6 +342,10 @@ export default function QrScanner({
             )}
           </div>
 
+          {state.qrCode.entity_type === 'inventory_item' && state.qrCode.entity_id && (
+            <InventoryAdjustPanel entityId={state.qrCode.entity_id} onDone={reset} />
+          )}
+
           <div className="mt-5 flex gap-2">
             <button
               onClick={reset}
@@ -517,6 +521,91 @@ export default function QrScanner({
             </form>
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+function InventoryAdjustPanel({ entityId, onDone }: { entityId: string; onDone: () => void }) {
+  const { user } = useAuth();
+  const [item, setItem] = useState<InventoryItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [movementType, setMovementType] = useState<'Stock In' | 'Stock Out' | 'Adjustment'>('Stock In');
+  const [quantity, setQuantity] = useState('');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    supabase.from('inventory_items').select('*').eq('id', entityId).maybeSingle()
+      .then(({ data }) => { setItem(data as InventoryItem | null); setLoading(false); });
+  }, [entityId]);
+
+  async function saveAdjustment() {
+    if (!item || !quantity) return;
+    setSaving(true);
+    const qty = parseFloat(quantity);
+
+    await supabase.from('inventory_movements').insert({
+      item_id: item.id,
+      movement_type: movementType,
+      quantity: qty,
+      unit: item.unit,
+      notes: notes || null,
+      created_by: user?.id,
+    });
+
+    let newStock = item.current_stock;
+    if (movementType === 'Stock In') newStock += qty;
+    else if (movementType === 'Stock Out') newStock = Math.max(0, newStock - qty);
+    else newStock = qty;
+
+    await supabase.from('inventory_items').update({ current_stock: newStock, updated_at: new Date().toISOString() }).eq('id', item.id);
+    setSaving(false);
+    setSaved(true);
+    setItem({ ...item, current_stock: newStock });
+  }
+
+  if (loading) return <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-400">Loading item...</div>;
+  if (!item) return <div className="mt-4 p-3 bg-red-50 rounded-lg text-sm text-red-600">Inventory item not found</div>;
+
+  return (
+    <div className="mt-5 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+      <div className="flex items-center gap-2 mb-3">
+        <PackageOpen size={16} className="text-emerald-600" />
+        <h3 className="text-sm font-semibold text-gray-900">Quick Stock Adjust</h3>
+      </div>
+      <div className="flex items-center gap-3 mb-3 p-2.5 bg-white rounded-lg border border-gray-100">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-900">{item.name}</p>
+          <p className="text-xs text-gray-400">{item.category}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-lg font-bold text-gray-900">{item.current_stock}</p>
+          <p className="text-xs text-gray-400">{item.unit}</p>
+        </div>
+      </div>
+
+      {saved ? (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+          <p className="text-sm text-emerald-700 font-medium">Stock updated successfully. New stock: {item.current_stock} {item.unit}</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <select value={movementType} onChange={e => setMovementType(e.target.value as any)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="Stock In">Stock In</option>
+            <option value="Stock Out">Stock Out</option>
+            <option value="Adjustment">Set to Exact Amount</option>
+          </select>
+          <input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder={`Quantity (${item.unit})`} min="0" step="0.01"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
+          <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (optional)"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
+          <button onClick={saveAdjustment} disabled={saving || !quantity}
+            className="w-full px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-lg">
+            {saving ? 'Saving...' : 'Save Adjustment'}
+          </button>
+        </div>
       )}
     </div>
   );
