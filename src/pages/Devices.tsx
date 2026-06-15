@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Cpu, RefreshCw, Trash2, Wifi, WifiOff, Copy, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
@@ -11,6 +12,7 @@ import type { IoTDevice, Room } from '../lib/types';
 
 export default function Devices() {
   useAuth();
+  const { t } = useTranslation();
   const [devices, setDevices] = useState<IoTDevice[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,23 +63,23 @@ export default function Devices() {
     <div className="p-4 lg:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">IoT Devices</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('devices.title')}</h1>
           <p className="text-sm text-gray-500">{devices.length} registered sensor{devices.length !== 1 ? 's' : ''}</p>
         </div>
         <button onClick={() => setShowRegister(true)}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
-          <Plus size={16} /> Register Device
+          <Plus size={16} /> {t('devices.registerDevice')}
         </button>
       </div>
 
       {devices.length === 0 ? (
-        <EmptyState icon={Cpu} title="No IoT devices registered" description="Register an ESP32 sensor to start collecting automated environmental readings." />
+        <EmptyState icon={Cpu} title={t('devices.noDevices')} description={t('devices.noDevicesDesc')} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {devices.map(device => {
             const status = getDeviceStatusColor(device.last_seen_at, device.reporting_interval_seconds);
             const statusColors = { online: 'bg-emerald-500', stale: 'bg-amber-500', offline: 'bg-red-500' };
-            const statusLabels = { online: 'Online', stale: 'Stale', offline: 'Offline' };
+            const statusLabels = { online: t('devices.online'), stale: t('devices.stale'), offline: t('devices.offline') };
 
             return (
               <div key={device.id} className={`bg-white rounded-xl border border-gray-200 p-5 ${!device.is_active ? 'opacity-60' : ''}`}>
@@ -88,7 +90,7 @@ export default function Devices() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 text-sm">{device.device_name}</h3>
-                      <p className="text-xs text-gray-500">{(device as any).room?.name ?? 'No room'}</p>
+                      <p className="text-xs text-gray-500">{(device as any).room?.name ?? t('devices.noRoom')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -99,20 +101,20 @@ export default function Devices() {
 
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Type</span>
+                    <span className="text-gray-500">{t('devices.deviceType')}</span>
                     <span className="text-gray-900 font-medium uppercase">{device.device_type}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Interval</span>
+                    <span className="text-gray-500">{t('devices.interval')}</span>
                     <span className="text-gray-900 font-medium">{Math.round(device.reporting_interval_seconds / 60)} min</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Last Seen</span>
-                    <span className="text-gray-900 font-medium">{device.last_seen_at ? formatRelativeTime(device.last_seen_at) : 'Never'}</span>
+                    <span className="text-gray-500">{t('devices.lastSeen')}</span>
+                    <span className="text-gray-900 font-medium">{device.last_seen_at ? formatRelativeTime(device.last_seen_at) : t('devices.never')}</span>
                   </div>
                   {device.firmware_version && (
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Firmware</span>
+                      <span className="text-gray-500">{t('devices.firmware')}</span>
                       <span className="text-gray-900 font-medium">{device.firmware_version}</span>
                     </div>
                   )}
@@ -120,7 +122,7 @@ export default function Devices() {
 
                 {newApiKey?.deviceId === device.id && (
                   <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs font-semibold text-amber-800 mb-1">New API Key (copy now, shown once):</p>
+                    <p className="text-xs font-semibold text-amber-800 mb-1">{t('devices.newApiKey')}</p>
                     <ApiKeyCopy value={newApiKey.key} />
                   </div>
                 )}
@@ -129,15 +131,15 @@ export default function Devices() {
                   <button onClick={() => toggleActive(device)}
                     className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${device.is_active ? 'text-gray-600 hover:bg-gray-100' : 'text-emerald-600 hover:bg-emerald-50'}`}>
                     {device.is_active ? <WifiOff size={12} /> : <Wifi size={12} />}
-                    {device.is_active ? 'Disable' : 'Enable'}
+                    {device.is_active ? t('devices.disable') : t('devices.enable')}
                   </button>
                   <button onClick={() => regenerateKey(device)}
                     className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
-                    <RefreshCw size={12} /> New Key
+                    <RefreshCw size={12} /> {t('devices.newKey')}
                   </button>
                   <button onClick={() => setDeleteTarget(device)}
                     className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-auto">
-                    <Trash2 size={12} /> Delete
+                    <Trash2 size={12} /> {t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -157,8 +159,8 @@ export default function Devices() {
       {deleteTarget && (
         <ConfirmDialog
           open={true}
-          title="Delete Device"
-          message={`Are you sure you want to delete "${deleteTarget.device_name}"? This cannot be undone and the device will stop sending data.`}
+          title={t('devices.deleteDevice')}
+          message={t('devices.deleteConfirm', { name: deleteTarget.device_name })}
           onConfirm={deleteDevice}
           onClose={() => setDeleteTarget(null)}
           danger
@@ -192,6 +194,7 @@ function RegisterDeviceModal({ rooms, onClose, onRegistered }: {
   onClose: () => void;
   onRegistered: (deviceId: string, apiKey: string) => void;
 }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     device_name: '',
     room_id: '',
@@ -228,16 +231,16 @@ function RegisterDeviceModal({ rooms, onClose, onRegistered }: {
   }
 
   return (
-    <Modal open onClose={onClose} title="Register IoT Device" size="md">
+    <Modal open onClose={onClose} title={t('devices.registerDevice')} size="md">
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Device Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('devices.deviceName')} *</label>
           <input value={form.device_name} onChange={e => setForm(f => ({ ...f, device_name: e.target.value }))}
-            placeholder="e.g., Fruiting Room 1 - Sensor A"
+            placeholder={t('devices.deviceNamePlaceholder')}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Room *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('envLogs.room')} *</label>
           <select value={form.room_id} onChange={e => setForm(f => ({ ...f, room_id: e.target.value }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="">Select room...</option>
@@ -246,7 +249,7 @@ function RegisterDeviceModal({ rooms, onClose, onRegistered }: {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Device Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('devices.deviceType')}</label>
             <select value={form.device_type} onChange={e => setForm(f => ({ ...f, device_type: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">
               <option value="esp32">ESP32</option>
@@ -255,18 +258,18 @@ function RegisterDeviceModal({ rooms, onClose, onRegistered }: {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Interval (seconds)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('devices.intervalSeconds')}</label>
             <input type="number" value={form.reporting_interval_seconds} onChange={e => setForm(f => ({ ...f, reporting_interval_seconds: +e.target.value }))}
               min={60} step={60}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
         </div>
-        <p className="text-xs text-gray-500">After registering, you will receive a one-time API key. Copy it into your device firmware configuration.</p>
+        <p className="text-xs text-gray-500">{t('devices.apiKeyWarning')}</p>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">{t('common.cancel')}</button>
           <button onClick={register} disabled={loading || !form.device_name || !form.room_id}
             className="px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-lg transition-colors">
-            Register
+            {t('devices.register')}
           </button>
         </div>
       </div>

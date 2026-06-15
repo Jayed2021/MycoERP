@@ -2,6 +2,8 @@
 
 [![Open in Bolt](https://bolt.new/static/open-in-bolt.svg)](https://bolt.new/~/sb1-crj6spzk)
 
+Available in: English | [বাংলা (Bengali)](./README.bn.md)
+
 A full-featured Enterprise Resource Planning (ERP) system purpose-built for commercial mushroom cultivation operations. Track every batch from agar plate to harvest, manage worker tasks with approval workflows, monitor environmental conditions, and verify physical operations with QR codes -- all in a single responsive web application.
 
 ## Tech Stack

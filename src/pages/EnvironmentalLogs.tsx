@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Thermometer, Cpu, Wifi } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +11,7 @@ import type { EnvironmentalLog, Room } from '../lib/types';
 
 export default function EnvironmentalLogs() {
   useAuth();
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<EnvironmentalLog[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,18 +53,18 @@ export default function EnvironmentalLogs() {
     <div className="p-4 lg:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Environmental Logs</h1>
-          <p className="text-sm text-gray-500">{logs.length} records</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('envLogs.title')}</h1>
+          <p className="text-sm text-gray-500">{logs.length} {t('common.records')}</p>
         </div>
         <button onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
-          <Plus size={16} /> Log Reading
+          <Plus size={16} /> {t('envLogs.logReading')}
         </button>
       </div>
 
       <div className="mb-4 flex items-center gap-3 flex-wrap">
         <select value={filterRoom} onChange={e => setFilterRoom(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-          <option value="">All Rooms</option>
+          <option value="">{t('envLogs.allRooms')}</option>
           {rooms.map(r => (
             <option key={r.id} value={r.id}>
               {r.name}{liveRooms.has(r.id) ? ' (Live)' : ''}
@@ -70,9 +72,9 @@ export default function EnvironmentalLogs() {
           ))}
         </select>
         <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-          <option value="">All Sources</option>
-          <option value="manual">Manual</option>
-          <option value="iot">IoT Sensor</option>
+          <option value="">{t('envLogs.allSources')}</option>
+          <option value="manual">{t('envLogs.manual')}</option>
+          <option value="iot">{t('envLogs.iot')}</option>
         </select>
         {liveRooms.size > 0 && (
           <div className="flex items-center gap-1.5 text-xs text-emerald-600">
@@ -86,22 +88,22 @@ export default function EnvironmentalLogs() {
       </div>
 
       {loading ? <PageLoader /> : logs.length === 0 ? (
-        <EmptyState icon={Thermometer} title="No environmental logs" description="Record room conditions to track environmental data." />
+        <EmptyState icon={Thermometer} title={t('envLogs.noLogs')} description={t('envLogs.noLogsDesc')} />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  <th className="text-left px-5 py-3">Date/Time</th>
-                  <th className="text-left px-3 py-3">Room</th>
-                  <th className="text-left px-3 py-3">Source</th>
-                  <th className="text-right px-3 py-3">Temp (°C)</th>
-                  <th className="text-right px-3 py-3">Humidity (%)</th>
-                  <th className="text-right px-3 py-3 hidden lg:table-cell">CO₂</th>
-                  <th className="text-left px-3 py-3 hidden lg:table-cell">Fan</th>
-                  <th className="text-left px-3 py-3 hidden lg:table-cell">Humidifier</th>
-                  <th className="text-left px-3 py-3">Logged By</th>
+                  <th className="text-left px-5 py-3">{t('envLogs.dateTime')}</th>
+                  <th className="text-left px-3 py-3">{t('envLogs.room')}</th>
+                  <th className="text-left px-3 py-3">{t('envLogs.source')}</th>
+                  <th className="text-right px-3 py-3">{t('envLogs.temp')}</th>
+                  <th className="text-right px-3 py-3">{t('envLogs.humidity')}</th>
+                  <th className="text-right px-3 py-3 hidden lg:table-cell">{t('envLogs.co2')}</th>
+                  <th className="text-left px-3 py-3 hidden lg:table-cell">{t('envLogs.fan')}</th>
+                  <th className="text-left px-3 py-3 hidden lg:table-cell">{t('envLogs.humidifier')}</th>
+                  <th className="text-left px-3 py-3">{t('envLogs.loggedBy')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -169,6 +171,7 @@ export default function EnvironmentalLogs() {
 
 function LogCreateModal({ rooms, onClose, onCreated }: { rooms: Room[]; onClose: () => void; onCreated: () => void }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     room_id: '',
     logged_at: new Date().toISOString().slice(0, 16),
@@ -207,54 +210,54 @@ function LogCreateModal({ rooms, onClose, onCreated }: { rooms: Room[]; onClose:
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Room *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('envLogs.room')} *</label>
             <select value={form.room_id} onChange={e => setForm(f => ({ ...f, room_id: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">
               <option value="">Select room...</option>
               {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date/Time</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('envLogs.dateTime')}</label>
             <input type="datetime-local" value={form.logged_at} onChange={e => setForm(f => ({ ...f, logged_at: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Temperature (°C)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('envLogs.temp')}</label>
             <input type="number" value={form.temperature} onChange={e => setForm(f => ({ ...f, temperature: e.target.value }))} step="0.1" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Humidity (%)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('envLogs.humidity')}</label>
             <input type="number" value={form.humidity} onChange={e => setForm(f => ({ ...f, humidity: e.target.value }))} step="0.1" min="0" max="100" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">CO₂ (ppm)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('envLogs.co2')}</label>
             <input type="number" value={form.co2} onChange={e => setForm(f => ({ ...f, co2: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fan Status</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('envLogs.fanStatus')}</label>
             <select value={form.fan_status} onChange={e => setForm(f => ({ ...f, fan_status: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">
               {['On', 'Off', 'Auto'].map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Humidifier</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('envLogs.humidifierStatus')}</label>
             <select value={form.humidifier_status} onChange={e => setForm(f => ({ ...f, humidifier_status: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">
               {['On', 'Off', 'Auto'].map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Light Status</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('envLogs.lightStatus')}</label>
             <select value={form.light_status} onChange={e => setForm(f => ({ ...f, light_status: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">
               {['On', 'Off', 'Auto'].map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')}</label>
             <input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
         </div>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg">Cancel</button>
-          <button onClick={save} disabled={loading || !form.room_id} className="px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-lg">Save Log</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg">{t('common.cancel')}</button>
+          <button onClick={save} disabled={loading || !form.room_id} className="px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-lg">{t('common.save')}</button>
         </div>
       </div>
     </Modal>

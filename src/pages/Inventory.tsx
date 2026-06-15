@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, PackageOpen, TrendingDown, Edit2, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +14,7 @@ const CATEGORIES = ['Grain', 'Substrate', 'Supplement', 'Packaging', 'Lab Supply
 
 export default function Inventory() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showItemModal, setShowItemModal] = useState(false);
@@ -48,7 +50,7 @@ export default function Inventory() {
     <div className="p-4 lg:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('inventory.title')}</h1>
           <p className="text-sm text-gray-500">
             {items.length} items
             {lowStockCount > 0 && <span className="ml-2 text-red-500 font-medium">· {lowStockCount} low stock</span>}
@@ -57,14 +59,14 @@ export default function Inventory() {
         {canManage(user?.role ?? '') && (
           <button onClick={() => { setEditItem(null); setShowItemModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
-            <Plus size={16} /> New Item
+            <Plus size={16} /> {t('inventory.newItem')}
           </button>
         )}
       </div>
 
       <div className="flex gap-3 mb-4 flex-wrap">
         <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-          <option value="">All Categories</option>
+          <option value="">{t('inventory.allCategories')}</option>
           {CATEGORIES.map(c => <option key={c}>{c}</option>)}
         </select>
         <button onClick={() => setShowLowStock(p => !p)}
@@ -77,7 +79,7 @@ export default function Inventory() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           {items.length === 0 ? (
-            <EmptyState icon={PackageOpen} title="No inventory items" description="Add inventory items to track raw materials." />
+            <EmptyState icon={PackageOpen} title={t('inventory.noItems')} description={t('inventory.noItemsDesc')} />
           ) : (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">

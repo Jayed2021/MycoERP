@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, FlaskConical, Layers, Wheat, Box, Sprout, Scissors,
   ClipboardList, PackageOpen, Building2, BookOpen, BarChart3, Users,
@@ -8,10 +9,11 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { navigate } from '../hooks/useRoute';
 import { supabase } from '../lib/supabase';
+import { LanguageSelector } from './LanguageSelector';
 import type { Notification } from '../lib/types';
 
 interface NavItem {
-  label: string;
+  labelKey: string;
   path: string;
   icon: React.ElementType;
   roles?: string[];
@@ -19,34 +21,34 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, group: 'main' },
-  { label: 'Tasks', path: '/tasks', icon: ClipboardList, group: 'main' },
-  { label: 'Scan QR', path: '/scan', icon: ScanLine, group: 'main' },
-  { label: 'Batches', path: '/batches', icon: Layers, group: 'production' },
-  { label: 'Lab / Agar', path: '/batches?type=agar', icon: FlaskConical, group: 'production' },
-  { label: 'Liquid Culture', path: '/batches?type=liquid_culture', icon: Beaker, group: 'production' },
-  { label: 'Grain Spawn', path: '/batches?type=grain_spawn', icon: Wheat, group: 'production' },
-  { label: 'Substrate', path: '/batches?type=substrate', icon: Box, group: 'production' },
-  { label: 'Fruiting', path: '/batches?type=fruiting_block', icon: Sprout, group: 'production' },
-  { label: 'Harvest', path: '/harvest', icon: Scissors, group: 'production' },
-  { label: 'Contamination', path: '/contamination', icon: AlertTriangle, group: 'production' },
-  { label: 'Env. Logs', path: '/env-logs', icon: Thermometer, group: 'production' },
-  { label: 'Inventory', path: '/inventory', icon: PackageOpen, group: 'resources' },
-  { label: 'Rooms', path: '/rooms', icon: Building2, group: 'resources' },
-  { label: 'Species & Strains', path: '/species', icon: Leaf, group: 'resources' },
-  { label: 'SOP Templates', path: '/templates', icon: BookOpen, group: 'resources' },
-  { label: 'QR Codes', path: '/qr', icon: QrCode, group: 'resources', roles: ['admin', 'manager'] },
-  { label: 'Reports', path: '/reports', icon: BarChart3, group: 'reporting', roles: ['admin', 'manager'] },
-  { label: 'Users', path: '/users', icon: Users, group: 'admin', roles: ['admin'] },
-  { label: 'IoT Devices', path: '/devices', icon: Cpu, group: 'admin', roles: ['admin'] },
+  { labelKey: 'nav.dashboard', path: '/dashboard', icon: LayoutDashboard, group: 'main' },
+  { labelKey: 'nav.tasks', path: '/tasks', icon: ClipboardList, group: 'main' },
+  { labelKey: 'nav.scanQr', path: '/scan', icon: ScanLine, group: 'main' },
+  { labelKey: 'nav.batches', path: '/batches', icon: Layers, group: 'production' },
+  { labelKey: 'nav.labAgar', path: '/batches?type=agar', icon: FlaskConical, group: 'production' },
+  { labelKey: 'nav.liquidCulture', path: '/batches?type=liquid_culture', icon: Beaker, group: 'production' },
+  { labelKey: 'nav.grainSpawn', path: '/batches?type=grain_spawn', icon: Wheat, group: 'production' },
+  { labelKey: 'nav.substrate', path: '/batches?type=substrate', icon: Box, group: 'production' },
+  { labelKey: 'nav.fruiting', path: '/batches?type=fruiting_block', icon: Sprout, group: 'production' },
+  { labelKey: 'nav.harvest', path: '/harvest', icon: Scissors, group: 'production' },
+  { labelKey: 'nav.contamination', path: '/contamination', icon: AlertTriangle, group: 'production' },
+  { labelKey: 'nav.envLogs', path: '/env-logs', icon: Thermometer, group: 'production' },
+  { labelKey: 'nav.inventory', path: '/inventory', icon: PackageOpen, group: 'resources' },
+  { labelKey: 'nav.rooms', path: '/rooms', icon: Building2, group: 'resources' },
+  { labelKey: 'nav.speciesStrains', path: '/species', icon: Leaf, group: 'resources' },
+  { labelKey: 'nav.sopTemplates', path: '/templates', icon: BookOpen, group: 'resources' },
+  { labelKey: 'nav.qrCodes', path: '/qr', icon: QrCode, group: 'resources', roles: ['admin', 'manager'] },
+  { labelKey: 'nav.reports', path: '/reports', icon: BarChart3, group: 'reporting', roles: ['admin', 'manager'] },
+  { labelKey: 'nav.users', path: '/users', icon: Users, group: 'admin', roles: ['admin'] },
+  { labelKey: 'nav.iotDevices', path: '/devices', icon: Cpu, group: 'admin', roles: ['admin'] },
 ];
 
-const groupLabels: Record<string, string> = {
+const groupLabelKeys: Record<string, string> = {
   main: '',
-  production: 'Production',
-  resources: 'Resources',
-  reporting: 'Reporting',
-  admin: 'Administration',
+  production: 'nav.production',
+  resources: 'nav.resources',
+  reporting: 'nav.reporting',
+  admin: 'nav.administration',
 };
 
 interface Props {
@@ -56,6 +58,7 @@ interface Props {
 
 export function Layout({ currentPath, children }: Props) {
   const { user, signOut } = useAuth();
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -116,15 +119,16 @@ export function Layout({ currentPath, children }: Props) {
     const isCollapsible = group === 'production' || group === 'resources';
     const isExpanded = group === 'production' ? productionExpanded : group === 'resources' ? resourcesExpanded : true;
     const toggle = group === 'production' ? () => setProductionExpanded(p => !p) : () => setResourcesExpanded(p => !p);
+    const groupLabel = groupLabelKeys[group] ? t(groupLabelKeys[group]) : '';
 
     return (
       <div key={group} className="mb-1">
-        {groupLabels[group] && (
+        {groupLabel && (
           <button
             onClick={isCollapsible ? toggle : undefined}
             className="w-full flex items-center justify-between px-3 py-1.5 mb-0.5"
           >
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{groupLabels[group]}</span>
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{groupLabel}</span>
             {isCollapsible && (
               <ChevronDown size={12} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
             )}
@@ -141,7 +145,7 @@ export function Layout({ currentPath, children }: Props) {
             }`}
           >
             <item.icon size={16} className={isActive(item) ? 'text-emerald-600' : 'text-gray-400'} />
-            {item.label}
+            {t(item.labelKey)}
             {isActive(item) && <ChevronRight size={12} className="ml-auto text-emerald-500" />}
           </button>
         ))}
@@ -182,7 +186,7 @@ export function Layout({ currentPath, children }: Props) {
           className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <LogOut size={14} />
-          Sign out
+          {t('auth.signOut')}
         </button>
       </div>
     </div>
@@ -214,6 +218,9 @@ export function Layout({ currentPath, children }: Props) {
 
           <div className="flex-1" />
 
+          {/* Language selector */}
+          <LanguageSelector />
+
           {/* Notification bell */}
           <div className="relative">
             <button
@@ -231,10 +238,10 @@ export function Layout({ currentPath, children }: Props) {
             {showNotifications && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                  <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
+                  <h3 className="font-semibold text-gray-900 text-sm">{t('notifications.title')}</h3>
                   <div className="flex items-center gap-2">
                     {unreadCount > 0 && (
-                      <button onClick={markAllRead} className="text-xs text-emerald-600 hover:underline">Mark all read</button>
+                      <button onClick={markAllRead} className="text-xs text-emerald-600 hover:underline">{t('notifications.markAllRead')}</button>
                     )}
                     <button onClick={() => setShowNotifications(false)}>
                       <X size={14} className="text-gray-400" />
@@ -243,7 +250,7 @@ export function Layout({ currentPath, children }: Props) {
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-8">No notifications</p>
+                    <p className="text-sm text-gray-400 text-center py-8">{t('notifications.noNotifications')}</p>
                   ) : notifications.map(n => (
                     <div key={n.id} className={`px-4 py-3 border-b border-gray-50 ${!n.read_at ? 'bg-emerald-50/50' : ''}`}>
                       <p className="text-sm font-medium text-gray-900">{n.title}</p>

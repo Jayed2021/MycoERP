@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Layers, ClipboardList, AlertTriangle, Sprout,
   Scissors, FlaskConical, Clock, CheckCircle2, XCircle,
@@ -34,6 +35,7 @@ const PIPELINE_STAGES = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
   const [todayTasks, setTodayTasks] = useState<Task[]>([]);
@@ -125,29 +127,32 @@ export default function Dashboard() {
     <div className="p-4 lg:p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
         <p className="text-sm text-gray-500">
-          Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {user?.full_name?.split(' ')[0]}
+          {t('dashboard.greeting', {
+            timeOfDay: new Date().getHours() < 12 ? t('dashboard.morning') : new Date().getHours() < 17 ? t('dashboard.afternoon') : t('dashboard.evening'),
+            name: user?.full_name?.split(' ')[0]
+          })}
         </p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={Layers} label="Active Batches" value={stats?.activeBatches ?? 0} color="bg-blue-50 text-blue-600" onClick={() => navigate('/batches')} />
-        <StatCard icon={ClipboardList} label="Due Today" value={stats?.tasksDueToday ?? 0} color="bg-amber-50 text-amber-600" onClick={() => navigate('/tasks')} />
-        <StatCard icon={AlertTriangle} label="Overdue Tasks" value={stats?.overdueTasks ?? 0} color={stats?.overdueTasks ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'} onClick={() => navigate('/tasks', { filter: 'overdue' })} />
-        <StatCard icon={Activity} label="Critical Tasks" value={stats?.criticalTasks ?? 0} color={stats?.criticalTasks ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'} onClick={() => navigate('/tasks', { priority: 'Critical' })} />
-        <StatCard icon={FlaskConical} label="Incubating" value={stats?.incubatingBatches ?? 0} color="bg-violet-50 text-violet-600" onClick={() => navigate('/batches')} />
-        <StatCard icon={Sprout} label="Fruiting" value={stats?.fruitingBatches ?? 0} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/batches', { type: 'fruiting_block' })} />
-        <StatCard icon={AlertTriangle} label="Contamination / 7d" value={stats?.contaminatedThisWeek ?? 0} color={stats?.contaminatedThisWeek ? 'bg-orange-50 text-orange-600' : 'bg-gray-50 text-gray-400'} onClick={() => navigate('/contamination')} />
-        <StatCard icon={Scissors} label="Harvest (kg) / mo" value={`${stats?.harvestThisMonth ?? 0}kg`} color="bg-teal-50 text-teal-600" onClick={() => navigate('/harvest')} />
+        <StatCard icon={Layers} label={t('dashboard.activeBatches')} value={stats?.activeBatches ?? 0} color="bg-blue-50 text-blue-600" onClick={() => navigate('/batches')} />
+        <StatCard icon={ClipboardList} label={t('dashboard.dueToday')} value={stats?.tasksDueToday ?? 0} color="bg-amber-50 text-amber-600" onClick={() => navigate('/tasks')} />
+        <StatCard icon={AlertTriangle} label={t('dashboard.overdueTasks')} value={stats?.overdueTasks ?? 0} color={stats?.overdueTasks ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'} onClick={() => navigate('/tasks', { filter: 'overdue' })} />
+        <StatCard icon={Activity} label={t('dashboard.criticalTasks')} value={stats?.criticalTasks ?? 0} color={stats?.criticalTasks ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'} onClick={() => navigate('/tasks', { priority: 'Critical' })} />
+        <StatCard icon={FlaskConical} label={t('dashboard.incubating')} value={stats?.incubatingBatches ?? 0} color="bg-violet-50 text-violet-600" onClick={() => navigate('/batches')} />
+        <StatCard icon={Sprout} label={t('dashboard.fruitingBatches')} value={stats?.fruitingBatches ?? 0} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/batches', { type: 'fruiting_block' })} />
+        <StatCard icon={AlertTriangle} label={t('dashboard.contaminationWeek')} value={stats?.contaminatedThisWeek ?? 0} color={stats?.contaminatedThisWeek ? 'bg-orange-50 text-orange-600' : 'bg-gray-50 text-gray-400'} onClick={() => navigate('/contamination')} />
+        <StatCard icon={Scissors} label={t('dashboard.harvestMonth')} value={`${stats?.harvestThisMonth ?? 0}kg`} color="bg-teal-50 text-teal-600" onClick={() => navigate('/harvest')} />
       </div>
 
       {/* QR Stats Row */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard icon={ScanLine} label="QR Scans Today" value={qrStats.scansToday} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/qr')} />
-        <StatCard icon={XCircle} label="Failed Scans Today" value={qrStats.failedToday} color={qrStats.failedToday > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'} onClick={() => navigate('/qr')} />
-        <StatCard icon={QrCode} label="Active QR Codes" value={qrStats.activeQrCodes} color="bg-blue-50 text-blue-600" onClick={() => navigate('/qr')} />
+        <StatCard icon={ScanLine} label={t('dashboard.qrScansToday')} value={qrStats.scansToday} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/qr')} />
+        <StatCard icon={XCircle} label={t('dashboard.failedScansToday')} value={qrStats.failedToday} color={qrStats.failedToday > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'} onClick={() => navigate('/qr')} />
+        <StatCard icon={QrCode} label={t('dashboard.activeQrCodes')} value={qrStats.activeQrCodes} color="bg-blue-50 text-blue-600" onClick={() => navigate('/qr')} />
       </div>
 
       {/* Environmental Alerts */}
@@ -156,11 +161,11 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-red-100 bg-red-50/30 rounded-t-xl">
             <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <Thermometer size={15} className="text-red-500" />
-              Environmental Alerts ({alerts.length})
+              {t('dashboard.environmentalAlerts')} ({alerts.length})
             </h2>
             {canManage(user?.role ?? '') && (
               <button onClick={() => navigate('/devices')} className="text-xs text-emerald-600 hover:underline flex items-center gap-1">
-                Manage Devices <ArrowRight size={11} />
+                {t('dashboard.manageDevices')} <ArrowRight size={11} />
               </button>
             )}
           </div>
@@ -180,7 +185,7 @@ export default function Dashboard() {
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <Activity size={16} className="text-emerald-600" />
-          Production Pipeline
+          {t('dashboard.productionPipeline')}
         </h2>
         <div className="flex items-stretch gap-2 overflow-x-auto pb-2">
           {PIPELINE_STAGES.map((stage, i) => (
@@ -192,7 +197,7 @@ export default function Dashboard() {
                 <stage.icon size={20} className="mx-auto mb-1 opacity-70" />
                 <p className="text-xs font-semibold">{stage.label}</p>
                 <p className="text-2xl font-bold mt-1">{pipeline[stage.key] ?? 0}</p>
-                <p className="text-xs opacity-70 mt-0.5">batches</p>
+                <p className="text-xs opacity-70 mt-0.5">{t('dashboard.batches')}</p>
               </button>
               {i < PIPELINE_STAGES.length - 1 && (
                 <div className="flex items-center text-gray-300">
@@ -210,17 +215,17 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <Clock size={15} className="text-amber-500" />
-              Tasks Due Today ({todayTasks.length})
+              {t('dashboard.tasksDueToday')} ({todayTasks.length})
             </h2>
             <button onClick={() => navigate('/tasks')} className="text-xs text-emerald-600 hover:underline flex items-center gap-1">
-              View all <ArrowRight size={11} />
+              {t('common.viewAll')} <ArrowRight size={11} />
             </button>
           </div>
           <div className="divide-y divide-gray-50">
             {todayTasks.length === 0 ? (
               <div className="flex items-center gap-2 px-5 py-8 text-center justify-center">
                 <CheckCircle2 size={16} className="text-emerald-400" />
-                <p className="text-sm text-gray-400">No tasks due today</p>
+                <p className="text-sm text-gray-400">{t('dashboard.noTasksDueToday')}</p>
               </div>
             ) : todayTasks.slice(0, 8).map(task => (
               <button
@@ -248,17 +253,17 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <XCircle size={15} className="text-red-500" />
-              Overdue Tasks ({overdueTasks.length})
+              {t('dashboard.overdueTasksPanel')} ({overdueTasks.length})
             </h2>
             <button onClick={() => navigate('/tasks', { filter: 'overdue' })} className="text-xs text-emerald-600 hover:underline flex items-center gap-1">
-              View all <ArrowRight size={11} />
+              {t('common.viewAll')} <ArrowRight size={11} />
             </button>
           </div>
           <div className="divide-y divide-gray-50">
             {overdueTasks.length === 0 ? (
               <div className="flex items-center gap-2 px-5 py-8 justify-center">
                 <CheckCircle2 size={16} className="text-emerald-400" />
-                <p className="text-sm text-gray-400">No overdue tasks</p>
+                <p className="text-sm text-gray-400">{t('dashboard.noOverdueTasks')}</p>
               </div>
             ) : overdueTasks.slice(0, 8).map(task => (
               <button
@@ -288,20 +293,20 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <Scissors size={15} className="text-teal-500" />
-              Upcoming Harvest
+              {t('dashboard.upcomingHarvest')}
             </h2>
             <button onClick={() => navigate('/batches', { type: 'fruiting_block' })} className="text-xs text-emerald-600 hover:underline flex items-center gap-1">
-              View fruiting <ArrowRight size={11} />
+              {t('dashboard.viewFruiting')} <ArrowRight size={11} />
             </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
-                  <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Batch</th>
-                  <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-500">Species</th>
-                  <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-500">Location</th>
-                  <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-500">Status</th>
+                  <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">{t('dashboard.batch')}</th>
+                  <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-500">{t('dashboard.species')}</th>
+                  <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-500">{t('dashboard.location')}</th>
+                  <th className="text-left px-3 py-2.5 text-xs font-medium text-gray-500">{t('common.status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -344,6 +349,7 @@ function StatCard({ icon: Icon, label, value, color, onClick }: {
 }
 
 function AlertRow({ alert, onAcknowledge }: { alert: EnvironmentalAlert; onAcknowledge: () => void }) {
+  const { t } = useTranslation();
   const roomName = (alert as any).room?.name ?? 'Unknown Room';
   const deviceName = (alert as any).device?.device_name;
 
@@ -355,7 +361,7 @@ function AlertRow({ alert, onAcknowledge }: { alert: EnvironmentalAlert; onAckno
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900">{roomName}</p>
         <p className="text-xs text-gray-500">
-          {alert.measured_value} (threshold: {alert.threshold_value})
+          {alert.measured_value} ({t('alerts.threshold')}: {alert.threshold_value})
           {deviceName && <> &middot; {deviceName}</>}
           &middot; {formatRelativeTime(alert.created_at)}
         </p>
@@ -363,15 +369,15 @@ function AlertRow({ alert, onAcknowledge }: { alert: EnvironmentalAlert; onAckno
       <div className="flex items-center gap-2 flex-shrink-0">
         {alert.auto_task_id && (
           <button onClick={() => navigate('/tasks/' + alert.auto_task_id)}
-            className="text-xs text-emerald-600 hover:underline">View Task</button>
+            className="text-xs text-emerald-600 hover:underline">{t('dashboard.viewTask')}</button>
         )}
         {!alert.acknowledged_at ? (
           <button onClick={onAcknowledge}
             className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors">
-            <CheckCircle size={12} /> Acknowledge
+            <CheckCircle size={12} /> {t('dashboard.acknowledge')}
           </button>
         ) : (
-          <span className="text-xs text-gray-400">Acknowledged</span>
+          <span className="text-xs text-gray-400">{t('dashboard.acknowledged')}</span>
         )}
       </div>
     </div>

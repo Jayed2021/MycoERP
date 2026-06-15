@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Scissors, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { navigate } from '../hooks/useRoute';
@@ -12,6 +13,7 @@ import type { Harvest, Batch, Species, Strain, Profile } from '../lib/types';
 
 export default function Harvests({ batchId }: { batchId?: string }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [harvests, setHarvests] = useState<Harvest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -38,12 +40,12 @@ export default function Harvests({ batchId }: { batchId?: string }) {
     <div className="p-4 lg:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Harvest Records</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('harvest.title')}</h1>
           <p className="text-sm text-gray-500">{harvests.length} harvests recorded</p>
         </div>
         <button onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
-          <Plus size={16} /> Record Harvest
+          <Plus size={16} /> {t('harvest.recordHarvest')}
         </button>
       </div>
 
@@ -57,7 +59,7 @@ export default function Harvests({ batchId }: { batchId?: string }) {
       )}
 
       {loading ? <PageLoader /> : harvests.length === 0 ? (
-        <EmptyState icon={Scissors} title="No harvest records" description="Record a harvest to track your production output." />
+        <EmptyState icon={Scissors} title={t('harvest.noHarvests')} description={t('harvest.noHarvestsDesc')} />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">

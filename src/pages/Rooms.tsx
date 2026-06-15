@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Edit2, Building2, ChevronDown, ChevronUp, QrCode, Thermometer, Droplets } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
@@ -21,6 +22,7 @@ const ROOM_TYPES = ['lab', 'incubation', 'fruiting', 'storage', 'substrate_prep'
 
 export default function Rooms() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [racks, setRacks] = useState<Record<string, Rack[]>>({});
   const [loading, setLoading] = useState(true);
@@ -102,19 +104,19 @@ export default function Rooms() {
     <div className="p-4 lg:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Rooms & Locations</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('rooms.title')}</h1>
           <p className="text-sm text-gray-500">{rooms.length} rooms</p>
         </div>
         {canManage(user?.role ?? '') && (
           <button onClick={() => { setEditRoom(null); setShowRoomModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
-            <Plus size={16} /> New Room
+            <Plus size={16} /> {t('rooms.newRoom')}
           </button>
         )}
       </div>
 
       {rooms.length === 0 ? (
-        <EmptyState icon={Building2} title="No rooms defined" description="Add rooms to start tracking locations." />
+        <EmptyState icon={Building2} title={t('rooms.noRooms')} description={t('rooms.noRoomsDesc')} />
       ) : (
         <div className="space-y-3">
           {rooms.map(room => (
@@ -174,7 +176,7 @@ export default function Rooms() {
                   {canManage(user?.role ?? '') && (
                     <>
                       <button onClick={e => { e.stopPropagation(); setShowRackModal(room.id); setEditRack(null); }}
-                        className="px-2 py-1 text-xs text-emerald-600 font-medium hover:bg-emerald-50 rounded">+ Rack</button>
+                        className="px-2 py-1 text-xs text-emerald-600 font-medium hover:bg-emerald-50 rounded">+ {t('rooms.newRack')}</button>
                       <button onClick={e => { e.stopPropagation(); generateRoomQr(room); }}
                         title="Generate QR for this room"
                         className="p-1.5 rounded-lg hover:bg-gray-100">
@@ -218,7 +220,7 @@ export default function Rooms() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400 px-5 py-3">No racks in this room.</p>
+                    <p className="text-sm text-gray-400 px-5 py-3">{t('rooms.noRacks')}</p>
                   )}
                 </div>
               )}
@@ -238,6 +240,7 @@ export default function Rooms() {
 }
 
 function RoomModal({ room, onClose, onSaved }: { room: Room | null; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     name: room?.name ?? '',
     room_type: room?.room_type ?? 'lab',
@@ -279,48 +282,48 @@ function RoomModal({ room, onClose, onSaved }: { room: Room | null; onClose: () 
 
   const f = form;
   return (
-    <Modal open onClose={onClose} title={room ? 'Edit Room' : 'New Room'} size="lg">
+    <Modal open onClose={onClose} title={room ? t('rooms.editRoom') : t('rooms.newRoom')} size="lg">
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Room Name *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('rooms.roomName')} *</label>
             <input value={f.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Room Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('rooms.roomType')}</label>
             <select value={f.room_type} onChange={e => setForm(p => ({ ...p, room_type: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">
               {ROOM_TYPES.map(t => <option key={t} value={t}>{getRoomTypeLabel(t)}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('rooms.capacity')}</label>
             <input type="number" value={f.capacity} onChange={e => setForm(p => ({ ...p, capacity: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Temp Min (°C)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('rooms.tempMin')}</label>
             <input type="number" value={f.temp_min} onChange={e => setForm(p => ({ ...p, temp_min: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Temp Max (°C)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('rooms.tempMax')}</label>
             <input type="number" value={f.temp_max} onChange={e => setForm(p => ({ ...p, temp_max: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Humidity Min (%)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('rooms.humidityMin')}</label>
             <input type="number" value={f.humidity_min} onChange={e => setForm(p => ({ ...p, humidity_min: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Humidity Max (%)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('rooms.humidityMax')}</label>
             <input type="number" value={f.humidity_max} onChange={e => setForm(p => ({ ...p, humidity_max: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')}</label>
           <textarea value={f.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} /> Active</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} /> {t('common.active')}</label>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg">Cancel</button>
-          <button onClick={save} disabled={loading || !f.name} className="px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-lg">Save</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg">{t('common.cancel')}</button>
+          <button onClick={save} disabled={loading || !f.name} className="px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-lg">{t('common.save')}</button>
         </div>
       </div>
     </Modal>
@@ -328,6 +331,7 @@ function RoomModal({ room, onClose, onSaved }: { room: Room | null; onClose: () 
 }
 
 function RackModal({ roomId, rack, onClose, onSaved }: { roomId: string; rack: Rack | null; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation();
   const [name, setName] = useState(rack?.name ?? '');
   const [shelfCount, setShelfCount] = useState(rack?.shelf_count ?? 4);
   const [notes, setNotes] = useState(rack?.notes ?? '');
@@ -348,17 +352,17 @@ function RackModal({ roomId, rack, onClose, onSaved }: { roomId: string; rack: R
   }
 
   return (
-    <Modal open onClose={onClose} title={rack ? 'Edit Rack' : 'New Rack'} size="sm">
+    <Modal open onClose={onClose} title={rack ? t('rooms.editRack') : t('rooms.newRack')} size="sm">
       <div className="space-y-4">
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Rack Name *</label>
+        <div><label className="block text-sm font-medium text-gray-700 mb-1">{t('rooms.rackName')} *</label>
           <input value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" /></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Shelf Count</label>
+        <div><label className="block text-sm font-medium text-gray-700 mb-1">{t('rooms.shelfCount')}</label>
           <input type="number" value={shelfCount} onChange={e => setShelfCount(+e.target.value)} min={1} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" /></div>
         <div><label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
           <input value={notes} onChange={e => setNotes(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500" /></div>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg">Cancel</button>
-          <button onClick={save} disabled={loading || !name} className="px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-lg">Save</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg">{t('common.cancel')}</button>
+          <button onClick={save} disabled={loading || !name} className="px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-lg">{t('common.save')}</button>
         </div>
       </div>
     </Modal>
