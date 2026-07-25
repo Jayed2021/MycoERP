@@ -414,7 +414,18 @@
     "department": "Department",
     "status": "Status",
     "lastActive": "Last Active",
-    "changeRole": "Change Role"
+    "changeRole": "Change Role",
+    "addUser": "Add User",
+    "createUser": "Create User",
+    "tempPassword": "Temporary Password",
+    "tempPasswordHint": "The user can change this password after signing in.",
+    "deleteUser": "Delete User",
+    "deleteConfirm": "Permanently delete {{name}}? Their account and login will be removed. This cannot be undone.",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "updateFailed": "Could not update the user. Please try again.",
+    "deleteFailed": "Could not delete the user. Please try again.",
+    "createFailed": "Could not create the user. Please try again."
   },
   "roles": {
     "admin": "Admin",

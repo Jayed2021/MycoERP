@@ -34,12 +34,12 @@ After sign-up, the system creates an entry in `auth.users` (Supabase Auth) and a
 
 ### Admin Management
 
-Admins can modify existing users through **Users > Edit User**:
-- Change a user's name, role, or department
-- Activate or deactivate user accounts
-- Deactivated users cannot log in
+Admins can create new users through **Users > Add User** by providing a full name, email, temporary password (minimum 6 characters), role, and department. The new user can change the temporary password after signing in.
 
-Note: Admins cannot create users directly -- users must self-register. Admins can then adjust their role and permissions after registration.
+Admins can also manage existing users from the **Users** page:
+- Change a user's name, role, or department
+- Activate or deactivate user accounts (deactivated users cannot log in)
+- Permanently delete a user account and its login (with confirmation; admins cannot delete their own account)
 
 ---
 
