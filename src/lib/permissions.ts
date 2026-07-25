@@ -42,6 +42,7 @@ export const ROLES: { value: UserRole; label: string }[] = [
   { value: 'production_worker', label: 'Production Worker' },
   { value: 'harvest_worker', label: 'Harvest Worker' },
   { value: 'viewer', label: 'Viewer' },
+  { value: 'demo', label: 'Demo' },
 ];
 
 export const ACTION_LABELS: Record<PermissionAction, string> = {

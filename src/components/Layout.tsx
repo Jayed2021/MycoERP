@@ -4,7 +4,7 @@ import {
   LayoutDashboard, FlaskConical, Layers, Wheat, Box, Sprout, Scissors,
   ClipboardList, PackageOpen, Building2, BookOpen, BarChart3, Users,
   Settings, Bell, LogOut, Menu, X, ChevronRight, Thermometer, AlertTriangle,
-  Leaf, ChevronDown, Beaker, ScanLine, QrCode, Cpu, Shield,
+  Leaf, ChevronDown, Beaker, ScanLine, QrCode, Cpu, Shield, Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../contexts/PermissionsContext';
@@ -60,7 +60,7 @@ interface Props {
 }
 
 export function Layout({ currentPath, children }: Props) {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isDemo } = useAuth();
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -278,6 +278,13 @@ export function Layout({ currentPath, children }: Props) {
             <span className="text-sm font-medium text-gray-700 hidden sm:block">{user?.full_name}</span>
           </button>
         </header>
+
+        {isDemo && (
+          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-2">
+            <Sparkles size={16} className="text-amber-600 flex-shrink-0" />
+            <p className="text-sm text-amber-800 font-medium">{t('demo.banner')}</p>
+          </div>
+        )}
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto">

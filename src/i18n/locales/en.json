@@ -55,7 +55,9 @@
     "role": "Role",
     "department": "Department",
     "alreadyHaveAccount": "Already have an account? Sign in",
-    "dontHaveAccount": "Don't have an account? Sign up"
+    "dontHaveAccount": "Don't have an account? Sign up",
+    "exploreDemo": "Explore the demo",
+    "demoHint": "Instant access as a demo manager — no account needed."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -451,5 +453,20 @@
   },
   "language": {
     "selectLanguage": "Language"
+  },
+  "demo": {
+    "banner": "Demo Mode — you're exploring the app with limited access. Nothing here is a live account.",
+    "settingTitle": "Enable demo access",
+    "settingDesc": "Shows a one-click \"Explore the demo\" button on the login screen so non-technical viewers can try the app as a demo manager. Turn this off before going live."
+  },
+  "reset": {
+    "title": "Reset all data",
+    "button": "Reset all data",
+    "description": "Permanently deletes all batches, tasks, harvests, contamination reports, environmental logs, inventory movements, notifications, audit history, and all non-admin user accounts. Your admin account, the species/strains/rooms/recipes/process templates catalog, permission settings, and app configuration are kept. Use this to start clean before going to production.",
+    "confirmTitle": "Reset all data?",
+    "confirmMessage": "This permanently deletes ALL operational data and non-admin user accounts, and turns off demo mode. The foundational catalog (species, strains, rooms, recipes, process templates) and your admin account are preserved. This cannot be undone. Are you sure?",
+    "success": "All data has been reset. Demo mode is now off. You can start using the app for real.",
+    "failed": "Reset failed. Please try again.",
+    "notAuth": "You must be signed in to reset data."
   }
 }

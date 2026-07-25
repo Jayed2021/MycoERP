@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Sprout, Eye, EyeOff } from 'lucide-react';
+import { Sprout, Eye, EyeOff, PlayCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { LanguageSelector } from '../components/LanguageSelector';
+import { DEMO_ENABLED } from '../lib/demoConfig';
 
 const DEPARTMENTS = ['Lab', 'Spawn', 'Substrate', 'Incubation', 'Fruiting', 'Harvest', 'Packaging', 'Management'];
 
 export default function Login() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInDemo } = useAuth();
   const { t } = useTranslation();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   const ROLES = [
     { value: 'admin', label: t('roles.admin') },
@@ -161,6 +163,26 @@ export default function Login() {
               {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
             </button>
           </div>
+
+          {DEMO_ENABLED && !isSignUp && (
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <button
+                onClick={async () => {
+                  setError('');
+                  setDemoLoading(true);
+                  const err = await signInDemo();
+                  if (err) setError(err);
+                  setDemoLoading(false);
+                }}
+                disabled={demoLoading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 text-emerald-700 font-semibold rounded-lg transition-colors text-sm border border-emerald-200"
+              >
+                <PlayCircle size={18} />
+                {demoLoading ? t('common.pleaseWait') : t('auth.exploreDemo')}
+              </button>
+              <p className="text-center text-xs text-gray-400 mt-2">{t('auth.demoHint')}</p>
+            </div>
+          )}
         </div>
 
         <p className="text-center text-emerald-400/60 text-xs mt-6">

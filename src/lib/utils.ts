@@ -74,6 +74,7 @@ export function getRoleLabel(role: string): string {
     production_worker: 'Production Worker',
     harvest_worker: 'Harvest Worker',
     viewer: 'Viewer',
+    demo: 'Demo',
   };
   return labels[role] ?? role;
 }

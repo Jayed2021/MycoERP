@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Settings, Save, Check, Tag, Ruler } from 'lucide-react';
+import { Settings, Save, Check, Tag, Ruler, Trash2, Sparkles, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { PageLoader } from '../components/LoadingSpinner';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { getBatchTypeLabel } from '../lib/utils';
 
 interface LabelSize {
@@ -55,6 +57,11 @@ export default function AppSettings() {
     farm_name: 'MycoERP Farm',
     auto_generate_qr_on_batch_create: true,
   });
+  const [demoEnabled, setDemoEnabled] = useState(true);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetDone, setResetDone] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -67,6 +74,7 @@ export default function AppSettings() {
         if (row.key === 'label_sizes') setLabelSizes(row.value as Record<string, LabelSize>);
         if (row.key === 'label_fields') setLabelFields(row.value as LabelFields);
         if (row.key === 'general') setGeneral(row.value as GeneralSettings);
+      if (row.key === 'demo_mode') setDemoEnabled((row.value as { enabled?: boolean })?.enabled === true);
       }
     }
     setLoading(false);
@@ -78,6 +86,7 @@ export default function AppSettings() {
       supabase.from('app_settings').upsert({ key: 'label_sizes', value: labelSizes, updated_at: new Date().toISOString(), updated_by: user?.id }),
       supabase.from('app_settings').upsert({ key: 'label_fields', value: labelFields, updated_at: new Date().toISOString(), updated_by: user?.id }),
       supabase.from('app_settings').upsert({ key: 'general', value: general, updated_at: new Date().toISOString(), updated_by: user?.id }),
+      supabase.from('app_settings').upsert({ key: 'demo_mode', value: { enabled: demoEnabled }, updated_at: new Date().toISOString(), updated_by: user?.id }),
     ]);
     setSaving(false);
     setSaved(true);
@@ -99,6 +108,30 @@ export default function AppSettings() {
     if (field === 'error_correction') return;
     setLabelFields(prev => ({ ...prev, [field]: !prev[field] }));
     setSaved(false);
+  }
+
+  async function handleReset() {
+    setResetting(true);
+    setResetError('');
+    setResetDone(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setResetError(t('reset.notAuth')); setResetting(false); return; }
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-data`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        setResetError(data?.error ?? t('reset.failed'));
+      } else {
+        setResetDone(true);
+        setDemoEnabled(false);
+      }
+    } catch {
+      setResetError(t('reset.failed'));
+    }
+    setResetting(false);
   }
 
   if (user?.role !== 'admin') {
@@ -369,9 +402,68 @@ export default function AppSettings() {
                 </div>
               </label>
             </div>
+
+            <div className="pt-4 border-t border-gray-100">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                  <Sparkles size={17} className="text-emerald-600" />
+                </div>
+                <label className="flex items-center gap-3 cursor-pointer flex-1">
+                  <input
+                    type="checkbox"
+                    checked={demoEnabled}
+                    onChange={e => { setDemoEnabled(e.target.checked); setSaved(false); }}
+                    className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">{t('demo.settingTitle')}</p>
+                    <p className="text-xs text-gray-400">{t('demo.settingDesc')}</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-gray-100">
+              <div className="rounded-xl border border-red-200 bg-red-50/50 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <Trash2 size={17} className="text-red-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-red-900 flex items-center gap-1.5">
+                      <AlertTriangle size={14} /> {t('reset.title')}
+                    </h4>
+                    <p className="text-xs text-red-700/80 mt-1 mb-3">{t('reset.description')}</p>
+                    {resetDone ? (
+                      <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{t('reset.success')}</div>
+                    ) : (
+                      <button
+                        onClick={() => setResetOpen(true)}
+                        className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                      >
+                        {t('reset.button')}
+                      </button>
+                    )}
+                    {resetError && (
+                      <div className="mt-2 text-sm text-red-700 bg-red-100 border border-red-200 rounded-lg px-3 py-2">{resetError}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        onConfirm={handleReset}
+        title={t('reset.confirmTitle')}
+        message={t('reset.confirmMessage')}
+        confirmLabel={resetting ? t('common.pleaseWait') : t('reset.button')}
+        danger
+      />
     </div>
   );
 }
